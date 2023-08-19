@@ -2,8 +2,8 @@ import express from "express";
 import path from "path";
 import logger from "morgan";
 import "dotenv/config";
-import { createError } from "http-errors";
 import connectDb from "./config/db";
+import router from "./routes";
 import { handleError } from "./middleWares";
 
 var app = express();
@@ -24,9 +24,12 @@ app.use(handleError);
 // Static files
 app.use(express.static(path.join(__dirname, "public")));
 
+// Config routers
+router(app);
+
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
-  next(createError(404));
+  return res.status(404).send("Not Found!");
 });
 
 module.exports = app;
