@@ -1,9 +1,9 @@
 import { authController } from "../../app/controller";
 import express from "express";
+import { verifyToken } from "../../middleWares";
 const router = express.Router();
 
-router.get("/login", authController.handleLogin);
-router.get("/logout", authController.handleLogin);
-router.get("/fetch-user-login", authController.handleLogin);
+router.post("/login", authController.handleLogin);
+router.get("/fetch-profile", verifyToken, authController.handleFetchProfile);
 
 export default router;

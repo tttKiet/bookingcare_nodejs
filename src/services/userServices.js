@@ -41,6 +41,24 @@ class UserServices {
       };
     }
   }
+  async getUserById(id) {
+    // Check email exists
+    const userDoc = await db.User.findByPk(id, {
+      raw: true,
+    });
+
+    if (!userDoc) {
+      return {
+        statusCode: 1,
+        msg: "User does not exist.",
+      };
+    }
+    return {
+      statusCode: 0,
+      msg: "Get user successfully.",
+      data: userDoc,
+    };
+  }
 }
 
 export default new UserServices();
