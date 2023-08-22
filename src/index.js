@@ -3,7 +3,9 @@ import path from "path";
 import logger from "morgan";
 import "dotenv/config";
 import connectDb from "./config/db";
+import cookieParser from "cookie-parser";
 import router from "./routes";
+import cors from "cors";
 import { handleError } from "./middleWares";
 
 var app = express();
@@ -20,6 +22,17 @@ connectDb();
 
 // Use Middaleware
 app.use(handleError);
+
+// Cors
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
+// Use CookieParser
+app.use(cookieParser());
 
 // Static files
 app.use(express.static(path.join(__dirname, "public")));

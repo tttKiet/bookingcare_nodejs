@@ -14,7 +14,16 @@ class AuthController {
         password: password,
       });
 
-      return res.status(200).json(data);
+      return res
+        .cookie("token", data.token, {
+          sameSite: "strict",
+          secure: process.env.ENVIRONMENT !== "dev",
+          httpOnly: true,
+          path: "/",
+          expiresIn: data.expiresIn,
+        })
+        .status(200)
+        .json({ statusCode: data.statusCode, msg: data.msg });
     } catch (err) {
       return res.status(500).json({ msg: "Error login.", err: err.message });
     }
@@ -22,7 +31,7 @@ class AuthController {
 
   // [GET] /api/v1/auth/fetch-profile
   async handleFetchProfile(req, res, next) {
-    const userId = req.userId;
+    const userId = req.user.id;
     if (!userId) {
       return res
         .status(400)
@@ -37,6 +46,18 @@ class AuthController {
       return res.status(200).json(data);
     } catch (err) {
       return res.status(500).json({ msg: "Error login.", err: err.message });
+    }
+  }
+
+  // [GET] /api/v1/auth/logout
+  async handleLogout(req, res, next) {
+    try {
+      res.cookie("token", "");
+      return res
+        .status(200)
+        .json({ statusCode: 0, msg: "Logout successfully" });
+    } catch (err) {
+      return res.status(500).json({ msg: "Error logout.", err: err.message });
     }
   }
 }
