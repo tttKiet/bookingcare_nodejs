@@ -27,7 +27,7 @@ module.exports = {
         type: Sequelize.STRING,
       },
       gender: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING,
       },
       experience: {
         type: Sequelize.STRING,
@@ -54,6 +54,7 @@ module.exports = {
       },
     });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable("Users");
   },

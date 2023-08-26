@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import db from "../app/models";
 import bcrypt from "bcrypt";
 const saltRounds = 10;
@@ -5,18 +6,30 @@ const saltRounds = 10;
 class UserServices {
   async createUser({ email, password, fullName, phone, address, gender }) {
     // Check email exists
-    const userExisted = await db.User.findOne({ where: { email } });
+    const userExisted = await db.User.findOne({
+      where: {
+        [Op.or]: {
+          email,
+          phone,
+        },
+      },
+      raw: true,
+    });
+
     if (userExisted)
       return {
         statusCode: 2,
-        msg: "Email already exists.",
+        msg:
+          userExisted.email === email
+            ? "Email đã tồn tại."
+            : "Số điện thoại đã tồn tại.",
       };
 
     const passHash = await bcrypt.hash(password, saltRounds);
     if (!passHash) {
       return {
         statusCode: 3,
-        msg: "Hash password failed.",
+        msg: "Mã hóa mật khẩu bị lỗi.",
       };
     }
     const userDoc = await db.User.create({
@@ -31,13 +44,13 @@ class UserServices {
     if (userDoc) {
       return {
         statusCode: 0,
-        msg: "Register user successfully.",
-        user: userDoc,
+        msg: "Đăng ký người dùng thành công.",
+        data: userDoc,
       };
     } else {
       return {
         statusCode: 4,
-        msg: "Register user failed.",
+        msg: "Lỗi đăng ký. Vui lòng thử lại sau!",
       };
     }
   }
@@ -45,17 +58,20 @@ class UserServices {
     // Check email exists
     const userDoc = await db.User.findByPk(id, {
       raw: true,
+      attributes: {
+        exclude: ["password"],
+      },
     });
 
     if (!userDoc) {
       return {
         statusCode: 1,
-        msg: "User does not exist.",
+        msg: "Người dùng khôgn tồn tại.",
       };
     }
     return {
       statusCode: 0,
-      msg: "Get user successfully.",
+      msg: "Lấy thông tin người dùng thành công.",
       data: userDoc,
     };
   }

@@ -26,6 +26,7 @@ class UserController {
       }
       return res.status(400).json(data);
     } catch (err) {
+      console.log(err);
       return res
         .status(500)
         .json({ msg: "Error creating user.", err: err.message });
