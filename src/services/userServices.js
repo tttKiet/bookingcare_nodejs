@@ -61,6 +61,8 @@ class UserServices {
       attributes: {
         exclude: ["password"],
       },
+      nest: true,
+      include: [db.Role],
     });
 
     if (!userDoc) {
