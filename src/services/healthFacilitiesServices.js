@@ -34,6 +34,7 @@ class healthFacilitiesServices {
   async getHealthFacilites() {
     const typeHealthFacilityDocs = await db.TypeHealthFacility.findAll({
       raw: true,
+      order: [["createdAt", "desc"]],
     });
     return {
       statusCode: 0,
@@ -98,6 +99,32 @@ class healthFacilitiesServices {
     return {
       statusCode: 2,
       msg: "Loại này chưa được xóa hãy không tồn tại.",
+    };
+  }
+
+  // delete all type health facility
+  async getInfoDashboardTypeAndHealthFacilites() {
+    const typeHealthFacilityDocsCount =
+      await db.TypeHealthFacility.findAndCountAll({
+        // offset: 4, => start  pagination
+        // limit: 2,
+      });
+
+    // const typeHealthFacilityDocsCount =
+    //   await db..findAndCountAll({
+    //     // offset: 4, => start  pagination
+    //     // limit: 2,
+    //   });
+    if (typeHealthFacilityDocsCount) {
+      return {
+        statusCode: 0,
+        msg: "Lấy thành công.",
+        data: typeHealthFacilityDocsCount,
+      };
+    }
+    return {
+      statusCode: 2,
+      msg: "Lấy thông tin thất bại.",
     };
   }
 }

@@ -81,6 +81,21 @@ class AdminController {
       return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // [GET] /admin/health-facilities/infomation/health-facilities-type
+  async handleGetInfoTypeAndHealthFacilities(req, res, next) {
+    try {
+      const data =
+        await healthFacilitiesServices.getInfoDashboardTypeAndHealthFacilites();
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
+    }
+  }
 }
 
 export default new AdminController();

@@ -21,4 +21,10 @@ router.delete(
   "/health-facilities/type",
   adminController.handleDeleteTypeHealthFacilities
 );
+
+// Dash board information Health facilities
+router.get(
+  "/health-facilities/infomation/health-facilities-type",
+  adminController.handleGetInfoTypeAndHealthFacilities
+);
 export default router;
