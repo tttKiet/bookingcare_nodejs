@@ -26,7 +26,7 @@ module.exports = {
       },
       typeHealthFacilityId: {
         allowNull: false,
-        type: Sequelize.UUIDV4,
+        type: Sequelize.UUID,
       },
       createdAt: {
         allowNull: false,

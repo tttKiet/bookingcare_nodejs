@@ -9,7 +9,7 @@ class AdminController {
         .status(404)
         .json({ statusCode: 1, msg: "Tên loại bệnh viện không được truyền." });
     try {
-      const data = await healthFacilitiesServices.createHealthFacility({
+      const data = await healthFacilitiesServices.createTypeHealthFacility({
         name,
       });
 
@@ -19,21 +19,25 @@ class AdminController {
       return res.status(400).json(data);
     } catch (err) {
       console.log(err);
-      return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
 
   // [GET] /admin/health-facilities/type
   async handleGetTypeHealthFacilities(req, res, next) {
     try {
-      const data = await healthFacilitiesServices.getHealthFacilites();
+      const data = await healthFacilitiesServices.getTypeHealthFacilites();
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }
       return res.status(400).json(data);
     } catch (err) {
       console.log(err);
-      return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
 
@@ -46,7 +50,7 @@ class AdminController {
         msg: "Id loại hoặc tên loại bệnh viện không được truyền.",
       });
     try {
-      const data = await healthFacilitiesServices.updateHealthFacilites({
+      const data = await healthFacilitiesServices.updateTypeHealthFacilites({
         id,
         name,
       });
@@ -56,7 +60,9 @@ class AdminController {
       return res.status(400).json(data);
     } catch (err) {
       console.log(err);
-      return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
 
@@ -69,7 +75,7 @@ class AdminController {
         msg: "Id loại bệnh viện không được truyền.",
       });
     try {
-      const data = await healthFacilitiesServices.deleteHealthFacilites({
+      const data = await healthFacilitiesServices.deleteTypeHealthFacilites({
         id,
       });
       if (data.statusCode === 0) {
@@ -78,7 +84,9 @@ class AdminController {
       return res.status(400).json(data);
     } catch (err) {
       console.log(err);
-      return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
 
@@ -93,7 +101,37 @@ class AdminController {
       return res.status(400).json(data);
     } catch (err) {
       console.log(err);
-      return res.status(500).json({ msg: "Lỗi server. Thử lại sau!" });
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /admin/health-facilities
+  async handleCreateHealthFacilities(req, res, next) {
+    const { name, address, phone, email, typeHealthFacilityId } = req.body;
+    if (!name || !address || !phone || !email || !typeHealthFacilityId)
+      return res.status(404).json({
+        statusCode: 1,
+        msg: "Tham số đầu vào không đầy đủ.",
+      });
+    try {
+      const data = await healthFacilitiesServices.createHealthFacility({
+        name,
+        address,
+        phone,
+        email,
+        typeHealthFacilityId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
 }

@@ -27,4 +27,7 @@ router.get(
   "/health-facilities/infomation/health-facilities-type",
   adminController.handleGetInfoTypeAndHealthFacilities
 );
+
+// HealthFacilities
+router.post("/health-facilities", adminController.handleCreateHealthFacilities);
 export default router;
