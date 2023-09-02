@@ -107,12 +107,12 @@ class healthFacilitiesServices {
     const typeHealthFacilityDocsCount =
       await db.TypeHealthFacility.findAndCountAll({
         // offset: 4, => start  pagination
-        limit: 0,
+        // limit: 0,
       });
 
     const healthFacilityDocsCount = await db.HealthFacility.findAndCountAll({
       // offset: 4, => start  pagination
-      limit: 0,
+      // limit: 0,
     });
     if (typeHealthFacilityDocsCount) {
       return {
@@ -137,6 +137,7 @@ class healthFacilitiesServices {
     phone,
     email,
     typeHealthFacilityId,
+    fileUrls,
   }) {
     const existedType = await db.TypeHealthFacility.findOne({
       where: {
@@ -156,6 +157,7 @@ class healthFacilitiesServices {
       phone,
       email,
       typeHealthFacilityId,
+      images: fileUrls,
     });
     if (typeHealthFacilityDoc) {
       return {
@@ -167,6 +169,94 @@ class healthFacilitiesServices {
     return {
       statusCode: 1,
       msg: "Tạo thất bại.",
+    };
+  }
+
+  // Get All Health Facilities
+  async getHealthFacilities({
+    limit = 10,
+    offset = 0,
+    name,
+    address,
+    typeHealthFacility,
+  }) {
+    const whereQuery = {};
+    const whereType = {};
+
+    name &&
+      (whereQuery.name = {
+        [Op.substring]: name,
+      });
+
+    address &&
+      (whereQuery.address = {
+        [Op.substring]: address,
+      });
+
+    typeHealthFacility && (whereType["name"] = typeHealthFacility);
+    const healthFacilitiesDocs = await db.HealthFacility.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      nest: true,
+      where: whereQuery,
+      include: [
+        {
+          model: db.TypeHealthFacility,
+          attributes: ["name"],
+          where: whereType,
+        },
+      ],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thành công",
+      data: healthFacilitiesDocs,
+    };
+  }
+  // Update Health Facility
+  async updateHealthFacility({
+    id,
+    name,
+    address,
+    phone,
+    email,
+    typeHealthFacilityId,
+  }) {
+    const existedType = await db.TypeHealthFacility.findOne({
+      where: {
+        id: typeHealthFacilityId,
+      },
+      raw: true,
+    });
+    if (!existedType) {
+      return {
+        statusCode: 2,
+        msg: "Loại bệnh viện này không tồn tại.",
+      };
+    }
+    const healthFacilityDoc = await db.HealthFacility.update(
+      { id },
+      {
+        name,
+        address,
+        phone,
+        email,
+        typeHealthFacilityId,
+      }
+    );
+
+    if (healthFacilityDoc?.[0] > 0) {
+      return {
+        statusCode: 0,
+        msg: "Cập nhật thành công.",
+      };
+    }
+
+    return {
+      statusCode: 1,
+      msg: "Cập nhật thất bại.",
     };
   }
 }

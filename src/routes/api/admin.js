@@ -1,4 +1,5 @@
 import { adminController } from "../../app/controller";
+import { uploadAwsS3 } from "../../middleWares";
 import express from "express";
 const router = express.Router();
 
@@ -29,5 +30,27 @@ router.get(
 );
 
 // HealthFacilities
-router.post("/health-facilities", adminController.handleCreateHealthFacilities);
+const uploadWithLimit = uploadAwsS3.array("images", 3);
+router.post(
+  "/health-facilities",
+  function (req, res, next) {
+    uploadWithLimit(req, res, function (err) {
+      if (err) {
+        // your error handling goes here
+        console.log(err);
+        return res
+          .status(401)
+          .json({ msg: "Vui lòng không tải ảnh vượt quá số lượng." });
+      }
+      next();
+    });
+  },
+  adminController.handleCreateHealthFacility
+);
+router.get("/health-facilities", adminController.handleGetHealthFacilities);
+router.patch("/health-facilities", adminController.handleUpdateHealthFacility);
+// router.delete(
+//   "/health-facilities",
+//   adminController.handleCreateHealthFacilities
+// );
 export default router;

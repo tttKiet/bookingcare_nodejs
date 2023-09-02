@@ -53,3 +53,6 @@ export async function verifyTokenAdmin(req, res, next) {
     next();
   });
 }
+
+// Upload Aws S3
+export * from "./uploadAwsS3";

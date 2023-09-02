@@ -28,6 +28,9 @@ module.exports = {
         allowNull: false,
         type: Sequelize.UUID,
       },
+      images: {
+        type: Sequelize.ARRAY(Sequelize.DataTypes.STRING),
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

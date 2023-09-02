@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
+      images: DataTypes.ARRAY(DataTypes.STRING),
       name: DataTypes.STRING,
       address: DataTypes.STRING,
       phone: DataTypes.STRING,

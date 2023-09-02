@@ -5,9 +5,11 @@ import "dotenv/config";
 import connectDb from "./config/db";
 import cookieParser from "cookie-parser";
 import router from "./routes";
+// import multer from "multer";
+// import multerS3 from "multer-s3";
+// import S3 from "aws-sdk/clients/s3";
 import cors from "cors";
 import { handleError } from "./middleWares";
-
 var app = express();
 
 // Logger browser
