@@ -232,6 +232,25 @@ class AdminController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // [DELETE] /admin/health-faciliies
+  async handleDeleteHealthFacility(req, res, next) {
+    const { id } = req.body;
+
+    try {
+      const data = await healthFacilitiesServices.deleteHealthFacility({
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
 }
 
 export default new AdminController();

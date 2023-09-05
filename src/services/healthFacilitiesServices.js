@@ -293,6 +293,34 @@ class healthFacilitiesServices {
       msg: "Cập nhật thất bại.",
     };
   }
+
+  // Delete a health facility
+  async deleteHealthFacility({ id }) {
+    const healthFacilityDoc = await db.HealthFacility.findOne({
+      where: { id: id },
+    });
+
+    // Delete image on clound s3
+    const imgOlds = healthFacilityDoc.dataValues.images;
+    const imageOlds = imgOlds.map((imgLink) => {
+      const key = imgLink.split("/").pop();
+      return {
+        Key: key,
+      };
+    });
+
+    imageOlds.length > 0 && deleteImagesFromS3(imageOlds);
+
+    // Delete soft updated aboult Luan van ********************************
+    // await healthFacilityDoc.destroy();
+
+    // Would will delete the record
+    await healthFacilityDoc.destroy({ force: true });
+    return {
+      statusCode: 0,
+      msg: "Đã xóa thành công.",
+    };
+  }
 }
 
 export default new healthFacilitiesServices();

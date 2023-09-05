@@ -41,11 +41,9 @@ router.post(
       if (err) {
         // your error handling goes here
         console.log(err);
-        return res
-          .status(401)
-          .json({
-            msg: err.message || "Vui lòng không tải ảnh vượt quá số lượng.",
-          });
+        return res.status(401).json({
+          msg: err.message || "Vui lòng không tải ảnh vượt quá số lượng.",
+        });
       }
       next();
     });
@@ -68,8 +66,5 @@ router.patch(
   },
   adminController.handleUpdateHealthFacility
 );
-// router.delete(
-//   "/health-facilities",
-//   adminController.handleCreateHealthFacilities
-// );
+router.delete("/health-facilities", adminController.handleDeleteHealthFacility);
 export default router;
