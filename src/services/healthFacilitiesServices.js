@@ -1,5 +1,6 @@
 import { Op } from "sequelize";
 import db from "../app/models";
+import { deleteImagesFromS3 } from "../untils";
 
 class healthFacilitiesServices {
   // create type health facility
@@ -223,6 +224,8 @@ class healthFacilitiesServices {
     phone,
     email,
     typeHealthFacilityId,
+    fileUrls,
+    imageOldKeys, // Image no change
   }) {
     const existedType = await db.TypeHealthFacility.findOne({
       where: {
@@ -236,18 +239,49 @@ class healthFacilitiesServices {
         msg: "Loại bệnh viện này không tồn tại.",
       };
     }
-    const healthFacilityDoc = await db.HealthFacility.update(
-      { id },
-      {
-        name,
-        address,
-        phone,
-        email,
-        typeHealthFacilityId,
-      }
-    );
 
-    if (healthFacilityDoc?.[0] > 0) {
+    const healthFacilityDoc = await db.HealthFacility.findOne({
+      where: { id: id },
+    });
+
+    if (!healthFacilityDoc) {
+      return {
+        statusCode: 2,
+        msg: "Không tìm thấy cơ sở này.",
+      };
+    }
+    const imgOlds = healthFacilityDoc.dataValues.images;
+
+    // a,b,c
+    // a
+
+    const imgNoChange = imgOlds.filter((imgOld) => {
+      const key = imgOld.split("/").pop();
+      const isExited = imageOldKeys.includes(key);
+      return isExited;
+    });
+
+    const imgWillDelete = imgOlds.filter((i) => !imgNoChange.includes(i));
+
+    const imgWillDeleteKeys = imgWillDelete.map((imgOld) => {
+      return {
+        Key: imgOld.split("/").pop(),
+      };
+    });
+
+    imgWillDeleteKeys.length > 0 && deleteImagesFromS3(imgWillDeleteKeys);
+
+    await healthFacilityDoc.update({
+      name,
+      address,
+      phone,
+      email,
+      typeHealthFacilityId,
+      images: [...imgNoChange, ...fileUrls],
+    });
+    const ok = await healthFacilityDoc.save();
+
+    if (ok) {
       return {
         statusCode: 0,
         msg: "Cập nhật thành công.",

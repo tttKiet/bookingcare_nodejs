@@ -19,7 +19,7 @@ const uploadAwsS3 = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-      cb(null, Date.now().toString() + "-" + file.originalname);
+      cb(null, Date.now().toString());
     },
   }),
 });

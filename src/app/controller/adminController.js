@@ -111,6 +111,7 @@ class AdminController {
   // [POST] /admin/health-facilities
   async handleCreateHealthFacility(req, res, next) {
     const files = req?.files;
+
     if (!files) {
       return res
         .status(500)
@@ -124,7 +125,6 @@ class AdminController {
     });
 
     const { name, address, phone, email, typeHealthFacilityId } = req.body;
-    console.log(files);
     if (!name || !address || !phone || !email || !typeHealthFacilityId) {
       const keys = files.map((f) => ({
         Key: f.key,
@@ -135,7 +135,6 @@ class AdminController {
         statusCode: 1,
         msg: "Tham số đầu vào không đầy đủ.",
       });
-      // Xóa ảnh đã upload
     }
 
     try {
@@ -185,12 +184,32 @@ class AdminController {
 
   // [PATCH] /admin/health-facilities
   async handleUpdateHealthFacility(req, res, next) {
-    const { name, address, phone, email, typeHealthFacilityId, id } = req.body;
-    if (!id || (!name && !address && !phone && !email && !typeHealthFacilityId))
+    const files = req?.files;
+    const fileUrls = files.map((f) => {
+      return f.location;
+    });
+    const { name, address, phone, email, typeHealthFacilityId, id, imageOlds } =
+      req.body;
+    if (imageOlds?.length === 0 && fileUrls.length === 0) {
       return res.status(200).json({
         statusCode: 1,
         msg: "Dữ liệu không được sửa đổi.",
       });
+    }
+    if (
+      !id ||
+      (!name && !address && !phone && !email && !typeHealthFacilityId)
+    ) {
+      const keys = files.map((f) => ({
+        Key: f.key,
+      }));
+      keys.length > 0 && deleteImagesFromS3(keys);
+      return res.status(200).json({
+        statusCode: 1,
+        msg: "Dữ liệu không được sửa đổi.",
+      });
+    }
+
     try {
       const data = await healthFacilitiesServices.updateHealthFacility({
         id,
@@ -199,6 +218,8 @@ class AdminController {
         phone,
         email,
         typeHealthFacilityId,
+        fileUrls,
+        imageOldKeys: imageOlds,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
