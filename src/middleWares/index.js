@@ -34,6 +34,7 @@ export async function verifyToken(req, res, next) {
 
     req.user = {
       id: tokenData.userId,
+      role: tokenData.role,
     };
     next();
   } catch (err) {
@@ -43,14 +44,14 @@ export async function verifyToken(req, res, next) {
     });
   }
 }
-
 // Verify token admin
 export async function verifyTokenAdmin(req, res, next) {
   verifyToken(req, res, () => {
-    if (req.user.role !== 0) {
-      res.status(403).json({ statusCode: 5, msg: "You are not admin." });
+    if (req?.user?.role?.id && req.user.role?.keyType === "admin") {
+      next();
+    } else {
+      return res.status(403).json({ statusCode: 4, msg: "You are not admin." });
     }
-    next();
   });
 }
 

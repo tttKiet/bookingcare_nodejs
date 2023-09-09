@@ -6,10 +6,12 @@ class authServices {
   async login({ email, password }) {
     // Check user exists
     const emailExists = await db.User.findOne({
-      raw: true,
       where: {
         email,
       },
+      raw: true,
+      include: [db.Role],
+      nest: true,
     });
 
     if (!emailExists) {
@@ -33,6 +35,7 @@ class authServices {
     const dataSign = {
       email: emailExists.email,
       userId: emailExists.id,
+      role: emailExists.Role,
     };
     const token = await jwt.sign(dataSign, process.env.PRIVATE_KEY_JWT, {
       expiresIn: "1d",

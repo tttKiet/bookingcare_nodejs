@@ -68,7 +68,7 @@ class UserServices {
     if (!userDoc) {
       return {
         statusCode: 1,
-        msg: "Người dùng khôgn tồn tại.",
+        msg: "Người dùng không tồn tại.",
       };
     }
     return {

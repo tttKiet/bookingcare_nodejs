@@ -1,10 +1,14 @@
 import { adminController } from "../../app/controller";
-import { uploadAwsS3 } from "../../middleWares";
+import { uploadAwsS3, verifyToken, verifyTokenAdmin } from "../../middleWares";
 import express from "express";
 const multer = require("multer");
 const upload = multer();
 
 const router = express.Router();
+
+// Midde wares
+router.use(verifyToken);
+router.use(verifyTokenAdmin);
 
 // TypeHealthFacilities
 router.post(
