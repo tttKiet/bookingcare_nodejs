@@ -251,6 +251,95 @@ class AdminController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // [POST] /admin/specialist
+  async handleCreateOrUpdateSpecialist(req, res, next) {
+    // Create and Update specialist
+    const { id, name, descriptionDisease, descriptionDoctor } = req.body;
+
+    if (!name || !descriptionDisease || !descriptionDoctor) {
+      return res.status(400).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+
+    try {
+      const data = await healthFacilitiesServices.createOrUpdateSpecialist({
+        id,
+        name,
+        descriptionDisease,
+        descriptionDoctor,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /admin/specialist
+  async handleGetSpecialist(req, res, next) {
+    const { limit, offset } = req.query;
+    try {
+      const data = await healthFacilitiesServices.getSpecialist({
+        limit,
+        offset,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  // [GET] /admin/specialist/:id
+  async handleGetSpecialistById(req, res, next) {
+    const { id } = req.params;
+    try {
+      const data = await healthFacilitiesServices.getSpecialistById({ id });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [DELETE] /admin/specialist
+  async handleDeleteSpecialist(req, res, next) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        statusCode: 1,
+        msg: "Thiếu id truyền vào.",
+      });
+    }
+    try {
+      const data = await healthFacilitiesServices.deleteSpecialist({
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
 }
 
 export default new AdminController();

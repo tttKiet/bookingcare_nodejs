@@ -1,5 +1,6 @@
 import { Op } from "sequelize";
 import db from "../app/models";
+import { v4 as uuidv4 } from "uuid";
 import { deleteImagesFromS3 } from "../untils";
 
 class healthFacilitiesServices {
@@ -319,6 +320,117 @@ class healthFacilitiesServices {
     return {
       statusCode: 0,
       msg: "Đã xóa thành công.",
+    };
+  }
+
+  // Create Health Facility
+  async createOrUpdateSpecialist({
+    id,
+    name,
+    descriptionDisease,
+    descriptionDoctor,
+  }) {
+    const specialistDoc = await db.Specialist.findOrCreate({
+      where: {
+        id: id ? id : null,
+      },
+      defaults: {
+        id: uuidv4(),
+        name,
+        descriptionDisease,
+        descriptionDoctor,
+      },
+    });
+    if (specialistDoc.length > 0 && specialistDoc[1]) {
+      return {
+        statusCode: 0,
+        msg: `Tạo thành công.`,
+        data: specialistDoc,
+      };
+    } else if (!specialistDoc[1]) {
+      const updateSpecialistDoc = await db.Specialist.update(
+        {
+          name,
+          descriptionDisease,
+          descriptionDoctor,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+      if (updateSpecialistDoc?.[0] > 0) {
+        return {
+          statusCode: 0,
+          msg: `Cập nhật thành công.`,
+          data: specialistDoc,
+        };
+      }
+    }
+
+    return {
+      statusCode: 1,
+      msg: "Tạo thất bại.",
+    };
+  }
+
+  // Get All Specialist
+  async getSpecialist({ offset = 0, limit = 100 }) {
+    const specialistDoc = await db.Specialist.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      order: [["createdAt", "desc"]],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...specialistDoc,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+  // Get Specialist
+  async getSpecialistById({ id }) {
+    const specialistDoc = await db.Specialist.findByPk(id);
+
+    if (!specialistDoc) {
+      return {
+        statusCode: 2,
+        msg: "Không tìm thấy tài liệu này.",
+      };
+    }
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: specialistDoc,
+    };
+  }
+
+  // Delete Specialist
+  async deleteSpecialist({ id }) {
+    const specialistDoc = await db.Specialist.destroy({
+      where: {
+        id,
+      },
+      force: true,
+    });
+
+    if (specialistDoc > 0) {
+      return {
+        statusCode: 0,
+        msg: "Xóa thành công.",
+        data: specialistDoc,
+      };
+    }
+
+    return {
+      statusCode: 1,
+      msg: "Xóa thất bại.",
     };
   }
 }

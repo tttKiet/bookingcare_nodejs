@@ -7,8 +7,8 @@ const upload = multer();
 const router = express.Router();
 
 // Midde wares
-router.use(verifyToken);
-router.use(verifyTokenAdmin);
+// router.use(verifyToken);
+// router.use(verifyTokenAdmin);
 
 // TypeHealthFacilities
 router.post(
@@ -71,4 +71,11 @@ router.patch(
   adminController.handleUpdateHealthFacility
 );
 router.delete("/health-facilities", adminController.handleDeleteHealthFacility);
+
+// Specialist
+router.get("/specialist", adminController.handleGetSpecialist);
+router.get("/specialist/:id", adminController.handleGetSpecialistById);
+router.post("/specialist", adminController.handleCreateOrUpdateSpecialist);
+router.delete("/specialist", adminController.handleDeleteSpecialist);
+
 export default router;

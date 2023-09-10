@@ -23,7 +23,7 @@ class AuthController {
           expiresIn: data.expiresIn,
         })
         .status(200)
-        .json({ statusCode: data.statusCode, msg: data.msg });
+        .json({ statusCode: data.statusCode, msg: data.msg, user: data.user });
     } catch (err) {
       return res.status(500).json({ msg: "Error login.", err: err.message });
     }

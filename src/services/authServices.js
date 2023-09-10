@@ -45,6 +45,7 @@ class authServices {
       statusCode: 0,
       msg: "Login successfully.",
       token: token,
+      user: dataSign,
       expiresIn,
     };
   }
