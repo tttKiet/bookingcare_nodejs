@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "roleId",
         targetKey: "id",
       });
+
+      User.belongsTo(models.Role, {
+        foreignKey: "positionId",
+        targetKey: "id",
+      });
     }
   }
   User.init(

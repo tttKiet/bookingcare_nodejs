@@ -1,4 +1,4 @@
-import { healthFacilitiesServices } from "../../services";
+import { healthFacilitiesServices, userServices } from "../../services";
 import { uploadAwsS3, s3 } from "../../middleWares";
 import { deleteImagesFromS3 } from "../../untils";
 class AdminController {
@@ -319,6 +319,98 @@ class AdminController {
 
   // [DELETE] /admin/specialist
   async handleDeleteSpecialist(req, res, next) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        statusCode: 1,
+        msg: "Thiếu id truyền vào.",
+      });
+    }
+    try {
+      const data = await healthFacilitiesServices.deleteSpecialist({
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /admin/position
+  async handleGetPosition(req, res, next) {
+    const { limit, offset } = req.query;
+    try {
+      const data = await userServices.getPosition({
+        limit,
+        offset,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /admin/position
+  async handleCreateOrUpdatePosition(req, res, next) {
+    const { id, name } = req.body;
+    if (!name) {
+      return res.status(400).json({
+        statusCode: 1,
+        msg: "Thiếu tên truyền vào.",
+      });
+    }
+    try {
+      const data = await userServices.createOrUpdatePosition({
+        id,
+        name,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [DELETE] /admin/position
+  async handleDeletePosition(req, res, next) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        statusCode: 1,
+        msg: "Thiếu id truyền vào.",
+      });
+    }
+    try {
+      const data = await userServices.deletePosition({
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /admin/doctor
+  async handleCreateOrUpdateDoctor(req, res, next) {
     const { id } = req.body;
     if (!id) {
       return res.status(400).json({

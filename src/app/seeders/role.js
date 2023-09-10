@@ -16,7 +16,7 @@ module.exports = {
         },
         {
           id: uuidv4(),
-          keyType: "docter",
+          keyType: "doctor",
         },
       ],
       {}

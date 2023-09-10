@@ -78,4 +78,12 @@ router.get("/specialist/:id", adminController.handleGetSpecialistById);
 router.post("/specialist", adminController.handleCreateOrUpdateSpecialist);
 router.delete("/specialist", adminController.handleDeleteSpecialist);
 
+// Posstion
+router.get("/position", adminController.handleGetPosition);
+router.post("/position", adminController.handleCreateOrUpdatePosition);
+router.delete("/position", adminController.handleDeletePosition);
+
+// Doctor
+router.post("/doctor", adminController.handleCreateOrUpdateDoctor);
+
 export default router;
