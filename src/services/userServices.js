@@ -110,10 +110,11 @@ class UserServices {
   async createOrUpdatePosition({ id, name }) {
     // Create a new position
     let whereOptions = {};
-    if (!id)
+    if (id)
       whereOptions = {
         id: { [Op.ne]: id },
       };
+
     const positionExisted = await db.Position.findOne({
       where: {
         name,
@@ -162,7 +163,7 @@ class UserServices {
       }
       return {
         statusCode: 3,
-        msg: "Đã có lỗi xảy ra. Vui lòng thử lại sau!",
+        msg: "Đã có lỗi xảy ra. Không có id!",
       };
     }
   }

@@ -7,15 +7,15 @@ module.exports = {
       "Roles",
       [
         {
-          id: uuidv4(),
+          id: "063421b1-1366-4af2-9838-5642badf3845",
           keyType: "user",
         },
         {
-          id: uuidv4(),
+          id: "3becac30-81cc-491e-ad6b-c4c5fa0c6039",
           keyType: "admin",
         },
         {
-          id: uuidv4(),
+          id: "f1e9f129-da8d-4db0-93ee-46bb422fdebd",
           keyType: "doctor",
         },
       ],

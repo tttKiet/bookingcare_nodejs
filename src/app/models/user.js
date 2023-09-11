@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: "id",
       });
 
-      User.belongsTo(models.Role, {
+      User.belongsTo(models.Position, {
         foreignKey: "positionId",
         targetKey: "id",
       });
@@ -44,14 +44,16 @@ module.exports = (sequelize, DataTypes) => {
       modelName: "User",
       hooks: {
         beforeCreate: async (user, options) => {
-          const defaultRole = await sequelize.models.Role.findOne({
-            where: {
-              keyType: "user",
-            },
-          });
+          if (!user.roleId) {
+            const defaultRole = await sequelize.models.Role.findOne({
+              where: {
+                keyType: "user",
+              },
+            });
 
-          if (defaultRole) {
-            user.roleId = defaultRole.id;
+            if (defaultRole) {
+              user.roleId = defaultRole.id;
+            }
           }
         },
       },
