@@ -34,11 +34,13 @@ class UserController {
 
   // [GET] /api/v1/user
   async handleGetUser(req, res, next) {
-    const { limit, offset } = req.query;
+    const { limit, offset, email, fullName } = req.query;
     try {
       const data = await userServices.getUser({
         limit,
         offset,
+        email,
+        fullName,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

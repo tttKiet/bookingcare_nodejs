@@ -48,11 +48,22 @@ class UserServices {
   }
 
   // Account
-  async getUser({ offset = 0, limit = 10 }) {
+  async getUser({ offset = 0, limit = 10, email, fullName }) {
+    const whereQuery = {};
+    email &&
+      (whereQuery.email = {
+        [Op.substring]: email,
+      });
+
+    fullName &&
+      (whereQuery.fullName = {
+        [Op.substring]: fullName,
+      });
     const accounts = await db.User.findAndCountAll({
       raw: true,
       offset,
       limit,
+      where: whereQuery,
       order: [["createdAt", "desc"]],
       nest: true,
     });

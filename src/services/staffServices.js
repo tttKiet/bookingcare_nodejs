@@ -110,16 +110,32 @@ class StaffServices {
   }
 
   // Staff
-  async getStaff({ offset = 0, limit = 10 }) {
+  async getStaff({ offset = 0, limit = 10, email, fullName }) {
+    const whereQuery = {};
+    email &&
+      (whereQuery.email = {
+        [Op.substring]: email,
+      });
+
+    fullName &&
+      (whereQuery.fullName = {
+        [Op.substring]: fullName,
+      });
     const accounts = await db.Staff.findAndCountAll({
       raw: true,
       offset,
       limit,
+      where: whereQuery,
       order: [["createdAt", "desc"]],
       nest: true,
       include: [
         {
           model: db.Role,
+          where: {
+            keyType: {
+              [Op.ne]: "admin",
+            },
+          },
         },
         {
           model: db.AcademicDegree,

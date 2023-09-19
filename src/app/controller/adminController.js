@@ -478,11 +478,13 @@ class AdminController {
 
   // [GET] /admin/staff
   async handleGetStaff(req, res, next) {
-    const { limit, offset } = req.query;
+    const { limit, offset, email, fullName } = req.query;
     try {
       const data = await staffServices.getStaff({
         limit,
         offset,
+        email,
+        fullName,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
