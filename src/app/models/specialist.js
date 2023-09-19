@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
       Specialist.hasMany(models.Checkup, {
         foreignKey: "specialistId",
       });
+
+      Specialist.hasMany(models.Staff, {
+        foreignKey: "specialistId",
+      });
     }
   }
   Specialist.init(

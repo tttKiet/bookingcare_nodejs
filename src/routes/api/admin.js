@@ -1,4 +1,4 @@
-import { adminController } from "../../app/controller";
+import { adminController, userController } from "../../app/controller";
 import { uploadAwsS3, verifyToken, verifyTokenAdmin } from "../../middleWares";
 import express from "express";
 const multer = require("multer");
@@ -78,12 +78,21 @@ router.get("/specialist/:id", adminController.handleGetSpecialistById);
 router.post("/specialist", adminController.handleCreateOrUpdateSpecialist);
 router.delete("/specialist", adminController.handleDeleteSpecialist);
 
-// Posstion
-router.get("/position", adminController.handleGetPosition);
-router.post("/position", adminController.handleCreateOrUpdatePosition);
-router.delete("/position", adminController.handleDeletePosition);
+// AcademicDegree
+router.get("/academic-degree", adminController.handleGetAcademicDegree);
+router.post(
+  "/academic-degree",
+  adminController.handleCreateOrUpdateAcademicDegree
+);
+router.delete("/academic-degree", adminController.handleDeleteAcademicDegree);
+
+// Staff
+router.get("/staff", adminController.handleGetStaff);
 
 // Doctor
-router.post("/doctor", adminController.handleCreateOrUpdateDoctor);
+router.post("/staff", adminController.handleCreateOrUpdateStaff);
+
+// Role
+router.get("/role", adminController.handleGetRole);
 
 export default router;

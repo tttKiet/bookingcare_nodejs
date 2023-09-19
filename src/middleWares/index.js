@@ -21,16 +21,15 @@ export async function verifyToken(req, res, next) {
     }
 
     // Verify token here
-    const tokenData = await jwt.verify(
-      accessToken,
-      process.env.PRIVATE_KEY_JWT
-    );
+    const tokenData = jwt.verify(accessToken, process.env.PRIVATE_KEY_JWT);
 
     if (!tokenData) {
       return res.status(400).json({
         msg: "Token not found, expires or invalid.",
       });
     }
+
+    console.log(" token", tokenData);
 
     req.user = {
       id: tokenData.userId,

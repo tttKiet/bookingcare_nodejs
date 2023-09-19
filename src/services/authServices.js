@@ -1,20 +1,33 @@
 import db from "../app/models";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
 
 class authServices {
   async login({ email, password }) {
     // Check user exists
-    const emailExists = await db.User.findOne({
+    const findUser = db.User.findOne({
       where: {
         email,
       },
       raw: true,
-      include: [db.Role],
       nest: true,
     });
+    const findStaff = db.Staff.findOne({
+      where: {
+        email,
+      },
+      include: [
+        {
+          model: db.Role,
+        },
+      ],
+      raw: true,
+      nest: true,
+    });
+    const [userDoc, staffDoc] = await Promise.all([findUser, findStaff]);
 
-    if (!emailExists) {
+    if (!userDoc && !staffDoc) {
       return {
         statusCode: 1,
         msg: "Email not found.",
@@ -22,8 +35,11 @@ class authServices {
     }
 
     // Check password
-    const isValidPass = await bcrypt.compare(password, emailExists.password);
+    let isValidPass = false;
 
+    if (userDoc) {
+      isValidPass = await bcrypt.compare(password, userDoc.password);
+    } else isValidPass = await bcrypt.compare(password, staffDoc.password);
     if (!isValidPass) {
       return {
         statusCode: 2,
@@ -33,9 +49,14 @@ class authServices {
 
     // Create JWT token
     const dataSign = {
-      email: emailExists.email,
-      userId: emailExists.id,
-      role: emailExists.Role,
+      email: userDoc ? userDoc.email : staffDoc.email,
+      userId: userDoc ? userDoc.id : staffDoc.id,
+      role: userDoc
+        ? {
+            id: "user",
+            keyType: "user",
+          }
+        : staffDoc.Role,
     };
     const token = await jwt.sign(dataSign, process.env.PRIVATE_KEY_JWT, {
       expiresIn: "1d",
@@ -48,6 +69,33 @@ class authServices {
       user: dataSign,
       expiresIn,
     };
+  }
+
+  async getRole({ option }) {
+    let roleDoc = null;
+    if (option == "all") {
+      roleDoc = await db.Role.findAll({ raw: true });
+      return {
+        statusCode: 0,
+        msg: "Lấy role thành công.",
+        data: roleDoc,
+      };
+    } else {
+      roleDoc = await db.Role.findAll({
+        raw: true,
+        where: {
+          keyType: {
+            [Op.notLike]: "admin",
+          },
+        },
+      });
+
+      return {
+        statusCode: 0,
+        msg: "Lấy role thành công.",
+        data: roleDoc,
+      };
+    }
   }
 }
 

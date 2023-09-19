@@ -1,6 +1,11 @@
-import { healthFacilitiesServices, userServices } from "../../services";
+import {
+  authServices,
+  healthFacilitiesServices,
+  userServices,
+} from "../../services";
 import { uploadAwsS3, s3 } from "../../middleWares";
 import { deleteImagesFromS3 } from "../../untils";
+import staffServices from "../../services/staffServices";
 class AdminController {
   // [POST] /admin/health-facilities/type
   async handleCreateTypeHealthFacilities(req, res, next) {
@@ -341,11 +346,11 @@ class AdminController {
     }
   }
 
-  // [GET] /admin/position
-  async handleGetPosition(req, res, next) {
+  // [GET] /admin/academic-degree
+  async handleGetAcademicDegree(req, res, next) {
     const { limit, offset } = req.query;
     try {
-      const data = await userServices.getPosition({
+      const data = await staffServices.getAcademicDegree({
         limit,
         offset,
       });
@@ -360,8 +365,8 @@ class AdminController {
     }
   }
 
-  // [POST] /admin/position
-  async handleCreateOrUpdatePosition(req, res, next) {
+  // [POST] /admin/academic-degree
+  async handleCreateOrUpdateAcademicDegree(req, res, next) {
     const { id, name } = req.body;
     if (!name) {
       return res.status(400).json({
@@ -370,7 +375,7 @@ class AdminController {
       });
     }
     try {
-      const data = await userServices.createOrUpdatePosition({
+      const data = await staffServices.createOrUpdateAcademicDegree({
         id,
         name,
       });
@@ -385,8 +390,8 @@ class AdminController {
     }
   }
 
-  // [DELETE] /admin/position
-  async handleDeletePosition(req, res, next) {
+  // [DELETE] /admin/academic-degree
+  async handleDeleteAcademicDegree(req, res, next) {
     const { id } = req.body;
     if (!id) {
       return res.status(400).json({
@@ -395,7 +400,7 @@ class AdminController {
       });
     }
     try {
-      const data = await userServices.deletePosition({
+      const data = await staffServices.deleteAcademicDegree({
         id,
       });
       if (data.statusCode === 0) {
@@ -409,18 +414,93 @@ class AdminController {
     }
   }
 
-  // [POST] /admin/doctor
-  async handleCreateOrUpdateDoctor(req, res, next) {
-    const { id } = req.body;
-    if (!id) {
-      return res.status(400).json({
+  // [POST] /admin/staff
+  async handleCreateOrUpdateStaff(req, res, next) {
+    const {
+      id,
+      email,
+      password,
+      fullName,
+      phone,
+      address,
+      gender,
+      academicDegreeId,
+      specialistId,
+      experience,
+      certificate,
+      roleId,
+    } = req.body;
+    if (
+      !id &&
+      (!email ||
+        !password ||
+        !fullName ||
+        !phone ||
+        !address ||
+        !gender ||
+        !academicDegreeId ||
+        !specialistId ||
+        !experience ||
+        !certificate ||
+        !roleId)
+    ) {
+      return res.status(401).json({
         statusCode: 1,
-        msg: "Thiếu id truyền vào.",
+        msg: "Thiếu tham số truyền vào.",
       });
     }
     try {
-      const data = await healthFacilitiesServices.deleteSpecialist({
+      const data = await staffServices.createOrUpdateStaff({
         id,
+        email,
+        password,
+        fullName,
+        phone,
+        address,
+        gender,
+        academicDegreeId,
+        specialistId,
+        experience,
+        certificate,
+        roleId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /admin/staff
+  async handleGetStaff(req, res, next) {
+    const { limit, offset } = req.query;
+    try {
+      const data = await staffServices.getStaff({
+        limit,
+        offset,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /admin/role
+  async handleGetRole(req, res, next) {
+    const { option } = req.query;
+    try {
+      const data = await authServices.getRole({
+        option,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

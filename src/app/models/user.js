@@ -9,15 +9,6 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      User.belongsTo(models.Role, {
-        foreignKey: "roleId",
-        targetKey: "id",
-      });
-
-      User.belongsTo(models.Position, {
-        foreignKey: "positionId",
-        targetKey: "id",
-      });
     }
   }
   User.init(
@@ -33,30 +24,10 @@ module.exports = (sequelize, DataTypes) => {
       phone: DataTypes.STRING,
       address: DataTypes.STRING,
       gender: DataTypes.STRING,
-      experience: DataTypes.STRING,
-      certificate: DataTypes.STRING,
-      roleId: DataTypes.UUID,
-      positionId: DataTypes.UUID,
-      specialistId: DataTypes.UUID,
     },
     {
       sequelize,
       modelName: "User",
-      hooks: {
-        beforeCreate: async (user, options) => {
-          if (!user.roleId) {
-            const defaultRole = await sequelize.models.Role.findOne({
-              where: {
-                keyType: "user",
-              },
-            });
-
-            if (defaultRole) {
-              user.roleId = defaultRole.id;
-            }
-          }
-        },
-      },
     }
   );
 

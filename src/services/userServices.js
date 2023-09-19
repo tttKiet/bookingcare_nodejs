@@ -4,65 +4,6 @@ import bcrypt from "bcrypt";
 const saltRounds = 10;
 
 class UserServices {
-  async createUser({
-    email,
-    password,
-    fullName,
-    phone,
-    address,
-    gender,
-    dataDoctor, //: { certificate, experience, positionId },
-  }) {
-    // Check email exists
-    const userExisted = await db.User.findOne({
-      where: {
-        [Op.or]: {
-          email,
-          phone,
-        },
-      },
-      raw: true,
-    });
-
-    if (userExisted)
-      return {
-        statusCode: 2,
-        msg:
-          userExisted.email === email
-            ? "Email đã tồn tại."
-            : "Số điện thoại đã tồn tại.",
-      };
-
-    const passHash = await bcrypt.hash(password, saltRounds);
-    if (!passHash) {
-      return {
-        statusCode: 3,
-        msg: "Mã hóa mật khẩu bị lỗi.",
-      };
-    }
-    const userDoc = await db.User.create({
-      email,
-      password: passHash,
-      fullName,
-      phone,
-      address,
-      gender,
-      ...dataDoctor,
-    });
-
-    if (userDoc) {
-      return {
-        statusCode: 0,
-        msg: "Đăng ký người dùng thành công.",
-        data: userDoc,
-      };
-    } else {
-      return {
-        statusCode: 4,
-        msg: "Lỗi đăng ký. Vui lòng thử lại sau!",
-      };
-    }
-  }
   async getUserById(id) {
     // Check email exists
     const userDoc = await db.User.findByPk(id, {
@@ -71,13 +12,32 @@ class UserServices {
         exclude: ["password"],
       },
       nest: true,
-      include: [db.Role],
     });
 
     if (!userDoc) {
+      // Check staff
+      const staffDoc = await db.Staff.findByPk(id, {
+        raw: true,
+        include: [
+          {
+            model: db.Role,
+          },
+        ],
+        attributes: {
+          exclude: ["password"],
+        },
+        nest: true,
+      });
+
+      if (!staffDoc)
+        return {
+          statusCode: 1,
+          msg: "Người dùng không tồn tại.",
+        };
       return {
-        statusCode: 1,
-        msg: "Người dùng không tồn tại.",
+        statusCode: 0,
+        msg: "Lấy thông tin nhân viên thành công.",
+        data: staffDoc,
       };
     }
     return {
@@ -87,66 +47,113 @@ class UserServices {
     };
   }
 
-  // POSITION
-  async getPosition({ offset = 0, limit = 100 }) {
-    const specialistDoc = await db.Position.findAndCountAll({
+  // Account
+  async getUser({ offset = 0, limit = 10 }) {
+    const accounts = await db.User.findAndCountAll({
       raw: true,
       offset,
       limit,
       order: [["createdAt", "desc"]],
+      nest: true,
     });
 
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
       data: {
-        ...specialistDoc,
+        ...accounts,
         limit: limit,
         offset: offset,
       },
     };
   }
 
-  async createOrUpdatePosition({ id, name }) {
-    // Create a new position
-    let whereOptions = {};
-    if (id)
-      whereOptions = {
-        id: { [Op.ne]: id },
-      };
-
-    const positionExisted = await db.Position.findOne({
-      where: {
-        name,
-        ...whereOptions,
-      },
-      raw: true,
-    });
-    if (positionExisted)
-      return {
-        statusCode: 1,
-        msg: "Vị trí, danh hiệu đã tồn tại.",
-      };
+  async createOrUpdateUser({
+    id,
+    email,
+    password,
+    fullName,
+    phone,
+    address,
+    gender,
+    role,
+  }) {
+    // Create a new Account
     if (!id) {
-      const positionDoc = await db.Position.create({
-        name,
+      const userExisted = await db.User.findOne({
+        where: {
+          [Op.or]: {
+            email,
+            phone,
+          },
+        },
+        raw: true,
       });
-      if (positionDoc) {
+
+      if (userExisted)
+        return {
+          statusCode: 2,
+          msg:
+            userExisted.email === email
+              ? "Email đã tồn tại."
+              : "Số điện thoại đã tồn tại.",
+        };
+
+      const passHash = await bcrypt.hash(password, saltRounds);
+      if (!passHash) {
+        return {
+          statusCode: 2,
+          msg: "Mã hóa mật khẩu bị lỗi.",
+        };
+      }
+      const userDoc = await db.User.create({
+        email,
+        password: passHash,
+        fullName,
+        phone,
+        address,
+        gender,
+      });
+
+      if (userDoc) {
         return {
           statusCode: 0,
-          msg: "Tạo vị trí, danh hiệu thành công.",
-          data: positionDoc,
+          msg: "Tạo tài khoản người dùng thành công.",
+          data: userDoc,
         };
       } else {
         return {
-          statusCode: 3,
-          msg: "Lỗi tạo vị trí, danh hiệu. Vui lòng thử lại sau!",
+          statusCode: 4,
+          msg: "Lỗi tạo tài khoản người dùng.",
         };
       }
     } else {
-      const positionDoc = await db.Position.update(
+      // update user
+      let passHashCreate = {};
+      if (role === "admin") {
+        const userPass = await db.User.findByPk(id, { raw: true });
+
+        if (userPass.password === password) {
+          passHashCreate.password = password;
+        } else {
+          const passHash = await bcrypt.hash(password, saltRounds);
+          if (!passHash) {
+            return {
+              statusCode: 2,
+              msg: "Mã hóa mật khẩu bị lỗi.",
+            };
+          }
+          passHashCreate.password = passHash;
+        }
+      }
+      const userDocUpdated = await db.User.update(
         {
-          name,
+          email,
+          ...passHashCreate,
+          fullName,
+          phone,
+          address,
+          gender,
         },
         {
           where: {
@@ -154,40 +161,20 @@ class UserServices {
           },
         }
       );
-
-      if (positionDoc?.[0] > 0) {
+      if (userDocUpdated[0] > 0) {
         return {
           statusCode: 0,
-          msg: "Đã lưu thay đổi.",
+          msg: `Cập nhật người dùng thành công. ${
+            role !== "admin" ? "Mật khẩu chưa được thay đổi." : ""
+          }`,
+        };
+      } else {
+        return {
+          statusCode: 0,
+          msg: "Dữ liệu chưa được thay đổi",
         };
       }
-      return {
-        statusCode: 3,
-        msg: "Đã có lỗi xảy ra. Không có id!",
-      };
     }
-  }
-
-  async deletePosition({ id, name }) {
-    const specialistDoc = await db.Position.destroy({
-      where: {
-        id,
-      },
-      force: true,
-    });
-
-    if (specialistDoc > 0) {
-      return {
-        statusCode: 0,
-        msg: "Xóa thành công.",
-        data: specialistDoc,
-      };
-    }
-
-    return {
-      statusCode: 1,
-      msg: "Xóa thất bại.",
-    };
   }
 }
 
