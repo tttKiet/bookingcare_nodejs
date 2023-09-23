@@ -54,5 +54,21 @@ export async function verifyTokenAdmin(req, res, next) {
   });
 }
 
+// Verify token admin
+export async function verifyTokenManager(req, res, next) {
+  verifyToken(req, res, () => {
+    if (
+      req?.user?.role?.id &&
+      ["admin", "manager"].includes(req.user.role?.keyType)
+    ) {
+      next();
+    } else {
+      return res
+        .status(403)
+        .json({ statusCode: 4, msg: "You are not admin or manager." });
+    }
+  });
+}
+
 // Upload Aws S3
 export * from "./uploadAwsS3";

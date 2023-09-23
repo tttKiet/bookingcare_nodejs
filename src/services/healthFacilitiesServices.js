@@ -174,6 +174,38 @@ class healthFacilitiesServices {
     };
   }
 
+  async getHealthFacilityWithEmail({ offset = 0, limit = 3, email }) {
+    const whereQuery = {};
+    email &&
+      (whereQuery.email = {
+        [Op.substring]: email,
+      });
+
+    const healthFacilitiesDocs = await db.HealthFacility.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      nest: true,
+      where: whereQuery,
+      include: [
+        {
+          model: db.TypeHealthFacility,
+          attributes: ["name"],
+        },
+      ],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...healthFacilitiesDocs,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
   // Get All Health Facilities
   async getHealthFacilities({
     limit = 10,

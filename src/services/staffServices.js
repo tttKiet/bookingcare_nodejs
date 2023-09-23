@@ -109,6 +109,54 @@ class StaffServices {
     };
   }
 
+  // Get Doctor With Email
+  async getDoctorWithEmail({ offset = 0, limit = 3, email }) {
+    const whereQuery = {};
+    email &&
+      (whereQuery.email = {
+        [Op.substring]: email,
+      });
+
+    const accounts = await db.Staff.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQuery,
+      order: [["createdAt", "desc"]],
+      nest: true,
+      include: [
+        {
+          model: db.Role,
+          where: {
+            keyType: "doctor",
+          },
+        },
+        {
+          model: db.AcademicDegree,
+          attributes: {
+            exclude: ["createdAt", "updatedAt"],
+          },
+        },
+        {
+          model: db.Specialist,
+          attributes: {
+            exclude: ["createdAt", "updatedAt"],
+          },
+        },
+      ],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...accounts,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
   // Staff
   async getStaff({ offset = 0, limit = 10, email, fullName }) {
     const whereQuery = {};

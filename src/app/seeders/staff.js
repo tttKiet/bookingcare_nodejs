@@ -20,7 +20,7 @@ module.exports = {
           updatedAt: new Date(),
         },
         {
-          id: uuidv4(),
+          id: "fad3735b-c6b6-4e52-8e35-d965291eba92",
           fullName: "Doctor 1",
           email: "doctor@gmail.com",
           password:

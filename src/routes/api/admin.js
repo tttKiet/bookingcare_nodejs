@@ -1,5 +1,10 @@
 import { adminController, userController } from "../../app/controller";
-import { uploadAwsS3, verifyToken, verifyTokenAdmin } from "../../middleWares";
+import {
+  uploadAwsS3,
+  verifyToken,
+  verifyTokenAdmin,
+  verifyTokenManager,
+} from "../../middleWares";
 import express from "express";
 const multer = require("multer");
 const upload = multer();
@@ -8,7 +13,25 @@ const router = express.Router();
 
 // Midde wares
 // router.use(verifyToken);
-// router.use(verifyTokenAdmin);
+
+// Work
+router.post(
+  "/work",
+  verifyTokenManager,
+  adminController.handleCreateOrUpdateWork
+);
+
+router.get("/work", verifyTokenManager, adminController.handleGetWorking);
+router.delete("/work", verifyTokenManager, adminController.handleDeleteWorking);
+
+router.use(verifyTokenAdmin);
+
+// Get doctor with email
+router.get(
+  "/staff/doctor",
+  verifyTokenManager,
+  adminController.getDoctorWithEmail
+);
 
 // TypeHealthFacilities
 router.post(
@@ -55,6 +78,7 @@ router.post(
   adminController.handleCreateHealthFacility
 );
 router.get("/health-facilities", adminController.handleGetHealthFacilities);
+
 router.patch(
   "/health-facilities",
   function (req, res, next) {
