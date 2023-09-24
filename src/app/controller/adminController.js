@@ -166,8 +166,16 @@ class AdminController {
 
   // [GET] /admin/health-facilities
   async handleGetHealthFacilities(req, res, next) {
-    const { limit, offset, name, address, typeHealthFacility, email } =
-      req.query;
+    const {
+      limit,
+      offset,
+      name,
+      address,
+      typeHealthFacility,
+      email,
+      searchNameOrEmail,
+      id,
+    } = req.query;
 
     try {
       if (email) {
@@ -182,11 +190,13 @@ class AdminController {
         return res.status(400).json(data);
       } else {
         const data = await healthFacilitiesServices.getHealthFacilities({
+          id,
           limit,
           offset,
           name,
           address,
           typeHealthFacility,
+          searchNameOrEmail,
         });
         if (data.statusCode === 0) {
           return res.status(200).json(data);
@@ -290,6 +300,83 @@ class AdminController {
       return res
         .status(500)
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /admin/health-facility/room
+  async handleCreateOrUpdateHealRoom(req, res, next) {
+    const { oldRoomNumber, healthFacilityId, roomNumber, capacity } = req.body;
+
+    if (!oldRoomNumber && (!healthFacilityId || !roomNumber || !capacity)) {
+      return res.status(401).json({
+        statusCode: 4,
+        msg: "Thiếu tham số truyền vào",
+      });
+    }
+
+    try {
+      const data = await healthFacilitiesServices.createOrUpdateRoom({
+        oldRoomNumber,
+        healthFacilityId,
+        roomNumber,
+        capacity,
+      });
+
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      const msg =
+        err.message == "Validation error"
+          ? "Số phòng đã tồn tại."
+          : err.message;
+      return res.status(401).json({ msg: msg });
+    }
+  }
+
+  // [GET] /admin/health-facility/room
+  async handleGetHealRoom(req, res, next) {
+    const { healthFacilityId } = req.query;
+
+    try {
+      const data = await healthFacilitiesServices.getRoom({ healthFacilityId });
+
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      const msg =
+        err.message == "Validite error" ? "Số phòng đã tồn tại." : err.message;
+      return res.status(401).json({ msg: msg });
+    }
+  }
+
+  // [DELETE] /admin/health-facility/room
+  async handleDeleteHealRoom(req, res, next) {
+    const { roomNumber, healthFacilityId } = req.body;
+
+    if (!roomNumber || !healthFacilityId) {
+      return res.status(401).json({ statusCode: 401, msg: "Thiếu tham số." });
+    }
+    try {
+      const data = await healthFacilitiesServices.deleteRoom({
+        roomNumber,
+        healthFacilityId,
+      });
+
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      const msg =
+        err.message == "Validite error" ? "Số phòng đã tồn tại." : err.message;
+      return res.status(401).json({ msg: msg });
     }
   }
 

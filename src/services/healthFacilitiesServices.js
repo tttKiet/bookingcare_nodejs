@@ -213,6 +213,8 @@ class healthFacilitiesServices {
     name,
     address,
     typeHealthFacility,
+    searchNameOrEmail,
+    id,
   }) {
     const whereQuery = {};
     const whereType = {};
@@ -221,6 +223,20 @@ class healthFacilitiesServices {
       (whereQuery.name = {
         [Op.substring]: name,
       });
+    id && (whereQuery.id = id);
+    searchNameOrEmail &&
+      (whereQuery[Op.or] = [
+        {
+          name: {
+            [Op.substring]: searchNameOrEmail,
+          },
+        },
+        {
+          email: {
+            [Op.substring]: searchNameOrEmail,
+          },
+        },
+      ]);
 
     address &&
       (whereQuery.address = {
@@ -290,7 +306,7 @@ class healthFacilitiesServices {
 
     const imgNoChange = imgOlds.filter((imgOld) => {
       const key = imgOld.split("/").pop();
-      const isExited = imageOldKeys.includes(key);
+      const isExited = imageOldKeys?.includes(key) || false;
       return isExited;
     });
 
@@ -355,6 +371,133 @@ class healthFacilitiesServices {
     };
   }
 
+  // Create Update room
+  async createOrUpdateRoom({
+    oldRoomNumber,
+    healthFacilityId,
+    roomNumber,
+    capacity,
+  }) {
+    // Check healthFacilityId exists
+    const healthFacilityDoc = await db.HealthFacility.findByPk(
+      healthFacilityId
+    );
+
+    if (!healthFacilityDoc) {
+      return {
+        statusCode: 4,
+        msg: "Cơ sở y tế không tồn tại.",
+      };
+    }
+    if (!oldRoomNumber) {
+      // create room
+      const roomDoc = await db.ClinicRoom.create({
+        healthFacilityId,
+        roomNumber,
+        capacity,
+      });
+
+      if (roomDoc) {
+        return {
+          statusCode: 0,
+          msg: "Tạo phòng khám thành công.",
+          data: roomDoc,
+        };
+      } else {
+        return {
+          statusCode: 2,
+          msg: "Tạo phòng khám thất bại.",
+        };
+      }
+    } else {
+      // Update room
+      const roomDoc = await db.ClinicRoom.update(
+        {
+          roomNumber,
+          capacity,
+        },
+        {
+          where: {
+            roomNumber: oldRoomNumber,
+            healthFacilityId,
+          },
+        }
+      );
+
+      if (roomDoc[0] > 0) {
+        return {
+          statusCode: 0,
+          msg: "Cập nhật phòng khám thành công.",
+        };
+      } else {
+        return {
+          statusCode: 2,
+          msg: "Cập nhật phòng khám thất bại.",
+        };
+      }
+    }
+  }
+
+  // Get Room
+  async getRoom({ limit = 10, offset = 0, healthFacilityId }) {
+    const whereQuery = {};
+    const whereType = {};
+    healthFacilityId && (whereQuery.healthFacilityId = healthFacilityId);
+
+    // name &&
+    //   (whereQuery.name = {
+    //     [Op.substring]: name,
+    //   });
+
+    // address &&
+    //   (whereQuery.address = {
+    //     [Op.substring]: address,
+    //   });
+
+    // typeHealthFacility && (whereType["name"] = typeHealthFacility);
+    const ClinicRoomDocs = await db.ClinicRoom.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      nest: true,
+      where: whereQuery,
+      include: [
+        {
+          model: db.HealthFacility,
+          attributes: ["name"],
+          where: whereType,
+        },
+      ],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thành công",
+      data: ClinicRoomDocs,
+    };
+  }
+
+  // Delete a room
+  async deleteRoom({ roomNumber, healthFacilityId }) {
+    const count = await db.ClinicRoom.destroy({
+      force: true,
+      where: {
+        roomNumber,
+        healthFacilityId,
+      },
+    });
+    if (count > 0) {
+      return {
+        statusCode: 0,
+        msg: "Đã xóa thành công.",
+      };
+    } else {
+      return {
+        statusCode: 5,
+        msg: "Xóa thất bại.",
+      };
+    }
+  }
   // Create Health Facility
   async createOrUpdateSpecialist({
     id,

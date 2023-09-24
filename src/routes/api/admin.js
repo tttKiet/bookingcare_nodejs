@@ -96,6 +96,15 @@ router.patch(
 );
 router.delete("/health-facilities", adminController.handleDeleteHealthFacility);
 
+// Health Facilities Room
+router.post(
+  "/health-facility/room",
+  adminController.handleCreateOrUpdateHealRoom
+);
+
+router.get("/health-facility/room", adminController.handleGetHealRoom);
+router.delete("/health-facility/room", adminController.handleDeleteHealRoom);
+
 // Specialist
 router.get("/specialist", adminController.handleGetSpecialist);
 router.get("/specialist/:id", adminController.handleGetSpecialistById);
