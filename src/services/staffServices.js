@@ -257,21 +257,30 @@ class StaffServices {
           msg: "Mã hóa mật khẩu bị lỗi.",
         };
       }
-      const userExisted = await db.Staff.findOne({
-        where: {
-          [Op.or]: {
-            email,
-            phone,
+      const [staffExisted, userExisted] = await Promise.all([
+        db.Staff.findOne({
+          where: {
+            [Op.or]: {
+              email,
+              phone,
+            },
           },
-        },
-        raw: true,
-      });
+        }),
+        db.User.findOne({
+          where: {
+            [Op.or]: {
+              email,
+              phone,
+            },
+          },
+        }),
+      ]);
 
-      if (userExisted)
+      if (userExisted || staffExisted)
         return {
           statusCode: 2,
           msg:
-            userExisted.email === email
+            userExisted?.email === email || staffExisted?.email === email
               ? "Email đã tồn tại."
               : "Số điện thoại đã tồn tại.",
         };
@@ -313,6 +322,42 @@ class StaffServices {
           msg: "Nhân viên không tìm thấy",
         };
       }
+
+      // Check user exists
+      const [staffExisted, userExisted] = await Promise.all([
+        db.Staff.findOne({
+          where: {
+            [Op.or]: {
+              email,
+              phone,
+            },
+            id: {
+              [Op.ne]: id,
+            },
+          },
+        }),
+        db.User.findOne({
+          where: {
+            [Op.or]: {
+              email,
+              phone,
+            },
+            id: {
+              [Op.ne]: id,
+            },
+          },
+        }),
+      ]);
+
+      if (userExisted || staffExisted)
+        return {
+          statusCode: 2,
+          msg:
+            userExisted?.email === email || staffExisted?.email === email
+              ? "Email đã tồn tại."
+              : "Số điện thoại đã tồn tại.",
+        };
+
       if (userPass.password === password) {
         passHashCreate.password = password;
       } else {
@@ -358,6 +403,72 @@ class StaffServices {
         };
       }
     }
+  }
+
+  // Code
+  async createCode({ name, key, value }) {
+    const codeExists = await db.Code.findByPk(key);
+    if (codeExists)
+      return {
+        statusCode: 1,
+        msg: "Mã code đã tồn tại.",
+      };
+
+    const codeDoc = await db.Code.create({ name, key, value });
+    if (!codeDoc)
+      return {
+        statusCode: 2,
+        msg: "Tạo code thất bại.",
+      };
+    else {
+      return {
+        statusCode: 0,
+        msg: "Tạo code thành công.",
+      };
+    }
+  }
+
+  async getCode({ offset = 0, limit = 10 }) {
+    const whereQuery = {};
+    const codes = await db.Code.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQuery,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...codes,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  async deleteCode({ key }) {
+    const codeExists = await db.Code.findByPk(key);
+    if (!codeExists)
+      return {
+        statusCode: 1,
+        msg: "Mã code không tồn tại.",
+      };
+
+    const isSucess = await codeExists.destroy({
+      force: true,
+    });
+    if (isSucess)
+      return {
+        statusCode: 0,
+        msg: "Xóa code thành công.",
+      };
+    else
+      return {
+        statusCode: 0,
+        msg: "Xóa code thất bại.",
+      };
   }
 }
 

@@ -172,6 +172,7 @@ class AdminController {
       name,
       address,
       typeHealthFacility,
+      typeHealthFacilityId,
       email,
       searchNameOrEmail,
       id,
@@ -196,6 +197,7 @@ class AdminController {
           name,
           address,
           typeHealthFacility,
+          typeHealthFacilityId,
           searchNameOrEmail,
         });
         if (data.statusCode === 0) {
@@ -720,6 +722,63 @@ class AdminController {
 
     try {
       const data = await workServices.deleteWorking(id);
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /code
+  async handleGetCode(req, res, next) {
+    const { limit, offset } = req.query;
+    try {
+      const data = await staffServices.getCode({ limit, offset });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  // [Delete] /code
+  async handleDeleteCode(req, res, next) {
+    const { key } = req.body;
+    if (!key) {
+      return res.status(400).json({ msg: "Key chưa được truyền vào." });
+    }
+    try {
+      const data = await staffServices.deleteCode({
+        key,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [Create] /code
+  async handleCreateCode(req, res, next) {
+    const { name, key, value } = req.body;
+    if (!name || !value || !key) {
+      return res
+        .status(400)
+        .json({ msg: "Tham số cần thiết chưa được truyền vào." });
+    }
+    try {
+      const data = await staffServices.createCode({ name, key, value });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }

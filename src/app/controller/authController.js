@@ -31,7 +31,7 @@ class AuthController {
 
   // [GET] /api/v1/auth/fetch-profile
   async handleFetchProfile(req, res, next) {
-    const userId = req.user.id;
+    const userId = req?.user?.id || null;
     if (!userId) {
       return res
         .status(400)

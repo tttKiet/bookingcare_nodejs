@@ -17,37 +17,46 @@ export async function verifyToken(req, res, next) {
   try {
     const accessToken = req.cookies.token;
     if (!accessToken) {
-      return res.status(400).json({ msg: "You are not logged in." });
+      return next();
+      // return res.status(400).json({ msg: "You are not logged in." });
     }
 
     // Verify token here
     const tokenData = jwt.verify(accessToken, process.env.PRIVATE_KEY_JWT);
 
     if (!tokenData) {
-      return res.status(400).json({
-        msg: "Token not found, expires or invalid.",
-      });
+      return next();
     }
-
-    console.log(" token", tokenData);
-
+    console.log("tokenData", tokenData);
     req.user = {
       id: tokenData.userId,
-      role: tokenData.role,
+      role: {
+        ...tokenData.role,
+      },
     };
     next();
   } catch (err) {
     console.log(err);
-    return res.status(400).json({
-      msg: "An error has occurred. Token not found, expires or invalid.",
-    });
+    next();
   }
 }
+
+// Forwards Login or not login
+export async function requireLogin(req, res, next) {
+  if (req?.user) {
+    next();
+  } else {
+    return res.status(400).json({ msg: "You are not logged in." });
+  }
+}
+
 // Verify token admin
 export async function verifyTokenAdmin(req, res, next) {
   verifyToken(req, res, () => {
     if (req?.user?.role?.id && req.user.role?.keyType === "admin") {
       next();
+    } else if (!req?.user?.role?.id) {
+      return res.status(401).json({ statusCode: 1, msg: "You are not login." });
     } else {
       return res.status(403).json({ statusCode: 4, msg: "You are not admin." });
     }
@@ -62,6 +71,8 @@ export async function verifyTokenManager(req, res, next) {
       ["admin", "manager"].includes(req.user.role?.keyType)
     ) {
       next();
+    } else if (req?.user?.role?.id) {
+      return res.status(401).json({ statusCode: 1, msg: "You are not login." });
     } else {
       return res
         .status(403)

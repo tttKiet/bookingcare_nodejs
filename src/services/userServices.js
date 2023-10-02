@@ -172,6 +172,7 @@ class UserServices {
           },
         }
       );
+      console.log("role--------------------", role);
       if (userDocUpdated[0] > 0) {
         return {
           statusCode: 0,

@@ -2,6 +2,7 @@ import { adminController, userController } from "../../app/controller";
 import {
   uploadAwsS3,
   verifyToken,
+  requireLogin,
   verifyTokenAdmin,
   verifyTokenManager,
 } from "../../middleWares";
@@ -10,9 +11,6 @@ const multer = require("multer");
 const upload = multer();
 
 const router = express.Router();
-
-// Midde wares
-// router.use(verifyToken);
 
 // Work
 router.post(
@@ -24,7 +22,7 @@ router.post(
 router.get("/work", verifyTokenManager, adminController.handleGetWorking);
 router.delete("/work", verifyTokenManager, adminController.handleDeleteWorking);
 
-router.use(verifyTokenAdmin);
+// router.use(verifyTokenAdmin);
 
 // Get doctor with email
 router.get(
@@ -127,5 +125,12 @@ router.post("/staff", adminController.handleCreateOrUpdateStaff);
 
 // Role
 router.get("/role", adminController.handleGetRole);
+
+// Code
+router
+  .route("/code")
+  .get(adminController.handleGetCode)
+  .post(adminController.handleCreateCode)
+  .delete(adminController.handleDeleteCode);
 
 export default router;

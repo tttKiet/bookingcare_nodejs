@@ -213,11 +213,17 @@ class healthFacilitiesServices {
     name,
     address,
     typeHealthFacility,
+    typeHealthFacilityId,
     searchNameOrEmail,
     id,
   }) {
     const whereQuery = {};
     const whereType = {};
+
+    typeHealthFacilityId?.length > 0 &&
+      (whereType.id = {
+        [Op.in]: typeHealthFacilityId,
+      });
 
     name &&
       (whereQuery.name = {

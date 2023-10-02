@@ -65,6 +65,7 @@ class UserController {
         msg: "Thiếu tham số truyền vào.",
       });
     }
+    console.log("user --------------------------------", req.user);
     try {
       const data = await userServices.createOrUpdateUser({
         id,
