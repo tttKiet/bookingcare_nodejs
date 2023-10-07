@@ -17,6 +17,9 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "healthFacilityId",
         targetKey: "id",
       });
+      Working.hasMany(models.WorkRoom, {
+        foreignKey: "workingId",
+      });
     }
   }
   Working.init(

@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       HealthExaminationSchedule.belongsTo(models.Code, {
         targetKey: "key",
         foreignKey: "timeCode",
+        as: "TimeCode",
       });
       HealthExaminationSchedule.belongsTo(models.Staff, {
         foreignKey: "staffId",

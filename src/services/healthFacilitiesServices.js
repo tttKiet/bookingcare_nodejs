@@ -450,16 +450,6 @@ class healthFacilitiesServices {
     const whereType = {};
     healthFacilityId && (whereQuery.healthFacilityId = healthFacilityId);
 
-    // name &&
-    //   (whereQuery.name = {
-    //     [Op.substring]: name,
-    //   });
-
-    // address &&
-    //   (whereQuery.address = {
-    //     [Op.substring]: address,
-    //   });
-
     // typeHealthFacility && (whereType["name"] = typeHealthFacility);
     const ClinicRoomDocs = await db.ClinicRoom.findAndCountAll({
       raw: true,

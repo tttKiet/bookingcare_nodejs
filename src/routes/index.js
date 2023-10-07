@@ -7,9 +7,7 @@ const router = (app) => {
 
   // Hello world
   app.use("/", (req, res) => {
-    res.send(
-      'Hello gaisss, i"am Kiet deleveloper! \n I am currently at Can Tho University!  Nice to meet you! \n'
-    );
+    res.send("Route not found!");
   });
 };
 

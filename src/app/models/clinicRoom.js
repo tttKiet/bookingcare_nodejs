@@ -12,6 +12,8 @@ module.exports = (sequelize, DataTypes) => {
       ClinicRoom.belongsTo(models.HealthFacility, {
         foreignKey: "healthFacilityId",
       });
+
+      ClinicRoom.hasMany(models.WorkRoom, { onDelete: "cascade", hooks: true });
     }
   }
   ClinicRoom.init(

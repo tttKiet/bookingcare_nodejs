@@ -696,7 +696,14 @@ class AdminController {
 
   // [GET] /admin/work
   async handleGetWorking(req, res, next) {
-    const { doctorName, id, doctorEmail, healthFacilityName } = req.query;
+    const {
+      doctorName,
+      id,
+      doctorEmail,
+      healthFacilityName,
+      healthFacilityId,
+      type,
+    } = req.query;
 
     try {
       const data = await workServices.getWorking({
@@ -704,6 +711,8 @@ class AdminController {
         id,
         doctorEmail,
         healthFacilityName,
+        healthFacilityId,
+        type,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -733,6 +742,91 @@ class AdminController {
     }
   }
 
+  // [GET] /admin/work-room
+  async handleGetWorkRoom(req, res, next) {
+    const { limit, offset, healthFacilityId, roomNumber } = req.query;
+
+    try {
+      const data = await workServices.getWorkRoom({
+        limit,
+        offset,
+        healthFacilityId,
+        roomNumber,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [Delete] /admin/work-room
+  async handleDeleteWorkRoom(req, res, next) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ msg: "Id chưa được truyền vào." });
+    }
+    try {
+      const data = await workServices.deleteWorkRoom(id);
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /admin/work-room
+  async handleCreateOrUpdateWorkRoom(req, res, next) {
+    const {
+      ClinicRoomRoomNumber,
+      ClinicRoomHealthFacilityId,
+      checkUpPrice,
+      applyDate,
+      id,
+      workingId,
+    } = req.body;
+    if (
+      !id &&
+      (!ClinicRoomRoomNumber ||
+        !ClinicRoomHealthFacilityId ||
+        !checkUpPrice ||
+        !applyDate ||
+        !workingId)
+    ) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+    try {
+      const data = await workServices.createOrUpdateWorkRoom({
+        ClinicRoomRoomNumber,
+        ClinicRoomHealthFacilityId,
+        checkUpPrice,
+        applyDate,
+        workingId,
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
   // [GET] /code
   async handleGetCode(req, res, next) {
     const { limit, offset } = req.query;
@@ -748,6 +842,23 @@ class AdminController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // [GET] /code/time
+  async handleGetTimeCode(req, res, next) {
+    const { limit, offset } = req.query;
+    try {
+      const data = await staffServices.getTimeCode({ limit, offset });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
   // [Delete] /code
   async handleDeleteCode(req, res, next) {
     const { key } = req.body;
@@ -779,6 +890,72 @@ class AdminController {
     }
     try {
       const data = await staffServices.createCode({ name, key, value });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [Create or update] /health-exam-schedule
+  async handleCreateOrUpdateHealthExamSchedule(req, res, next) {
+    const { date, maxNumber, timeCode, staffId, id } = req.body;
+    if (!id && (!date || !maxNumber || !timeCode || !staffId)) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+    try {
+      const data = await workServices.createOrUpdateHealthExamSchedule({
+        date,
+        maxNumber,
+        timeCode,
+        staffId,
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [Delete] /health-exam-schedule
+  async handleDeleteHealthExamSchedule(req, res, next) {
+    const { id } = req.body;
+
+    try {
+      const data = await workServices.deleteHealthExamSchedule(id);
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /health-exam-schedule
+  async handleGetHealthExamSchedule(req, res, next) {
+    const { limit, offset, staffId, date } = req.query;
+    try {
+      const data = await workServices.getHealthExamSchedule({
+        limit,
+        offset,
+        staffId,
+        date,
+      });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }

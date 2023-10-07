@@ -448,6 +448,29 @@ class StaffServices {
     };
   }
 
+  async getTimeCode({ offset = 0, limit = 12 }) {
+    const whereQuery = {
+      name: "Time",
+    };
+    const codes = await db.Code.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQuery,
+      order: [["key", "asc"]],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...codes,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
   async deleteCode({ key }) {
     const codeExists = await db.Code.findByPk(key);
     if (!codeExists)

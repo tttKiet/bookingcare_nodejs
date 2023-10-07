@@ -27,7 +27,6 @@ export async function verifyToken(req, res, next) {
     if (!tokenData) {
       return next();
     }
-    console.log("tokenData", tokenData);
     req.user = {
       id: tokenData.userId,
       role: {
@@ -36,7 +35,6 @@ export async function verifyToken(req, res, next) {
     };
     next();
   } catch (err) {
-    console.log(err);
     next();
   }
 }

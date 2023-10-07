@@ -22,6 +22,12 @@ router.post(
 router.get("/work", verifyTokenManager, adminController.handleGetWorking);
 router.delete("/work", verifyTokenManager, adminController.handleDeleteWorking);
 
+// WorkRoom
+router
+  .route("/work-room")
+  .get(verifyTokenManager, adminController.handleGetWorkRoom)
+  .post(verifyTokenManager, adminController.handleCreateOrUpdateWorkRoom)
+  .delete(verifyTokenManager, adminController.handleDeleteWorkRoom);
 // router.use(verifyTokenAdmin);
 
 // Get doctor with email
@@ -132,5 +138,7 @@ router
   .get(adminController.handleGetCode)
   .post(adminController.handleCreateCode)
   .delete(adminController.handleDeleteCode);
+
+router.route("/code/time").get(adminController.handleGetTimeCode);
 
 export default router;

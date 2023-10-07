@@ -1,4 +1,4 @@
-import { Op, where } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import db from "../app/models";
 import bcrypt from "bcrypt";
 const saltRounds = 10;
@@ -56,7 +56,6 @@ class WorkServices {
       include: [db.HealthFacility],
     });
     if (workCheck) {
-      console.log("workCheck 58", workCheck);
       return workCheck;
     }
 
@@ -90,6 +89,26 @@ class WorkServices {
     } else {
       return true;
     }
+  }
+
+  async isWorking(staffId) {
+    const workDoc = await db.Working.findOne({
+      where: {
+        staffId,
+        [Op.or]: [
+          {
+            endDate: null,
+          },
+          {
+            endDate: {
+              [Op.gt]: new Date(),
+            },
+          },
+        ],
+      },
+      raw: true,
+    });
+    return !!workDoc;
   }
 
   async createOrUpdateWorking({
@@ -203,6 +222,8 @@ class WorkServices {
     id,
     doctorEmail,
     healthFacilityName,
+    healthFacilityId,
+    type = "all",
   }) {
     const whereQuery = {};
     const whereQueryDoctor = {};
@@ -223,7 +244,20 @@ class WorkServices {
       (whereQueryHeal.name = {
         [Op.substring]: healthFacilityName,
       });
+    if (type == "current") {
+      whereQuery[Op.or] = [
+        {
+          endDate: null,
+        },
+        {
+          endDate: {
+            [Op.gt]: new Date(),
+          },
+        },
+      ];
+    }
 
+    healthFacilityId && (whereQuery.healthFacilityId = healthFacilityId);
     const workingDoc = await db.Working.findAndCountAll({
       raw: true,
       offset,
@@ -237,6 +271,7 @@ class WorkServices {
             exclude: ["createdAt", "updatedAt"],
           },
           where: whereQueryDoctor,
+          include: [db.AcademicDegree],
         },
         {
           model: db.HealthFacility,
@@ -269,6 +304,412 @@ class WorkServices {
     console.log(workingDoc);
 
     if (workingDoc > 0)
+      return {
+        statusCode: 0,
+        msg: "Đã xóa thành công.",
+      };
+    else {
+      return {
+        statusCode: 1,
+        msg: "Không tìm thấy tài nguyên này.",
+      };
+    }
+  }
+
+  // Work Room
+  async getWorkRoom({ offset = 0, limit = 10, healthFacilityId, roomNumber }) {
+    const whereQueryWorkRoom = {};
+
+    healthFacilityId &&
+      (whereQueryWorkRoom.ClinicRoomHealthFacilityId = healthFacilityId);
+
+    roomNumber && (whereQueryWorkRoom.ClinicRoomRoomNumber = roomNumber);
+    const docs = await db.WorkRoom.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQueryWorkRoom,
+      include: [
+        {
+          model: db.ClinicRoom,
+          include: [
+            {
+              model: db.HealthFacility,
+            },
+          ],
+        },
+        {
+          model: db.Working,
+          include: [
+            {
+              model: db.Staff,
+            },
+          ],
+        },
+      ],
+      nest: true,
+    });
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...docs,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  async createOrUpdateWorkRoom({
+    ClinicRoomRoomNumber,
+    ClinicRoomHealthFacilityId,
+    checkUpPrice,
+    applyDate,
+    id,
+    workingId,
+  }) {
+    // Check exist healthfaclility and staff
+    const [clinicRoomDoc, workingDoc] = await Promise.all([
+      db.ClinicRoom.findOne({
+        where: {
+          roomNumber: ClinicRoomRoomNumber,
+          healthFacilityId: ClinicRoomHealthFacilityId,
+        },
+        raw: true,
+      }),
+      db.Working.findByPk(workingId, {
+        raw: true,
+      }),
+    ]);
+
+    if (!clinicRoomDoc || !workingDoc) {
+      return {
+        statusCode: 1,
+        msg: "Không tìm thấy phòng hoặc lịch công tác của bác sỉ.",
+      };
+    }
+
+    // Check orverload
+    const countWorkRoom = await db.WorkRoom.count({
+      where: {
+        ClinicRoomRoomNumber,
+        ClinicRoomHealthFacilityId,
+      },
+    });
+
+    if (countWorkRoom >= clinicRoomDoc.capacity) {
+      return {
+        statusCode: 7,
+        msg: "Phòng đã đủ chổ khám.",
+      };
+    }
+
+    if (workingDoc.healthFacilityId !== ClinicRoomHealthFacilityId) {
+      return {
+        statusCode: 4,
+        msg: "Lịch công tác không phải của bác sỉ này.",
+      };
+    }
+
+    const datePassed = new Date(applyDate).toISOString();
+    const workRoomExists = await db.WorkRoom.findOne({
+      where: Sequelize.where(
+        Sequelize.fn("DATE", Sequelize.col("applyDate")),
+        Sequelize.fn("DATE", Sequelize.literal(`'${datePassed}'`))
+      ),
+      raw: true,
+    });
+
+    if (workRoomExists)
+      return {
+        statusCode: 401,
+        msg: "Ngày áp dụng đã có.",
+      };
+
+    if (!id) {
+      // Create
+      const workDoc = await db.WorkRoom.create({
+        ClinicRoomRoomNumber,
+        ClinicRoomHealthFacilityId,
+        checkUpPrice,
+        applyDate,
+        workingId,
+      });
+
+      if (workDoc) {
+        return {
+          statusCode: 0,
+          msg: "Tạo thành công.",
+          data: workDoc,
+        };
+      } else {
+        return {
+          statusCode: 5,
+          msg: "Tạo thất bại.",
+        };
+      }
+    } else {
+      const workDoc = await db.WorkRoom.update(
+        {
+          checkUpPrice,
+          applyDate,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+      if (workDoc[0] > 0) {
+        return {
+          statusCode: 0,
+          msg: "Cập nhật thành công.",
+        };
+      } else {
+        return {
+          statusCode: 2,
+          msg: "Cập nhật thất bại. Không tìm thấy dữ liệu này.",
+        };
+      }
+    }
+  }
+  async deleteWorkRoom(id) {
+    const isDeleted = await db.WorkRoom.destroy({
+      force: true,
+      where: {
+        id,
+      },
+    });
+
+    if (isDeleted > 0)
+      return {
+        statusCode: 0,
+        msg: "Đã xóa thành công.",
+      };
+    else {
+      return {
+        statusCode: 1,
+        msg: "Không tìm thấy tài nguyên này.",
+      };
+    }
+  }
+
+  // Health Examination Schedule
+  async getHealthExamSchedule({ offset = 0, limit = 100, staffId, date }) {
+    const whereQueryDoctor = {};
+
+    const whereQuery = {};
+    staffId && (whereQuery.staffId = staffId);
+    date && (whereQuery.date = moment(date).format("L"));
+    const documents = await db.HealthExaminationSchedule.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      order: [["date", "desc"]],
+      where: whereQuery,
+      include: [
+        {
+          model: db.Staff,
+          attributes: {
+            exclude: ["createdAt", "updatedAt"],
+          },
+          where: whereQueryDoctor,
+        },
+        {
+          model: db.Code,
+          attributes: {},
+          as: "TimeCode",
+        },
+      ],
+      nest: true,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...documents,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  async createOrUpdateHealthExamSchedule({
+    date,
+    maxNumber,
+    timeCode,
+    staffId,
+    id,
+  }) {
+    const isWorking = await this.isWorking(staffId);
+    if (!isWorking)
+      return {
+        statusCode: 7,
+        msg: "Bác sỉ chưa được thêm vào nơi làm việc.",
+      };
+    if (Array.isArray(timeCode)) {
+      const codes = await db.Code.findAll({
+        where: {
+          key: {
+            [Op.in]: timeCode,
+          },
+        },
+        raw: true,
+      });
+
+      if (timeCode.length !== codes.length) {
+        return {
+          statusCode: 2,
+          msg: `Không tìm thấy mã thời gian nào đó.`,
+        };
+      }
+
+      const staffDoc = await db.Staff.findByPk(staffId);
+      if (!staffDoc)
+        return {
+          statusCode: 2,
+          msg: `Không tìm thấy ${staffId}.`,
+        };
+    } else {
+      // Validate
+      const [staffDoc, codeDoc] = await Promise.all([
+        db.Staff.findByPk(staffId),
+        db.Code.findByPk(timeCode, {
+          raw: true,
+        }),
+      ]);
+      if (!staffDoc || !codeDoc) {
+        return {
+          statusCode: 1,
+          msg: `Không tìm thấy ${staffId} or ${timeCode}.`,
+        };
+      }
+    }
+
+    const isDateFuture = new Date(date) > new Date();
+
+    if (!isDateFuture) {
+      return { statusCode: 2, msg: "Ngày cập nhật phải ở tương lai." };
+    }
+
+    // Create a new schedule for date
+    const isUpdateDate = await db.HealthExaminationSchedule.findOne({
+      where: {
+        date: moment(date).format("L"),
+      },
+      raw: true,
+    });
+    if (isUpdateDate) {
+      // Update schedule for date
+      const isDeleted = await db.HealthExaminationSchedule.destroy({
+        force: true,
+        where: {
+          date: moment(date).format("L"),
+        },
+      });
+      if (!isDeleted) {
+        return {
+          statusCode: 6,
+          msg: "Cập nhật lịch thất bại. Xóa dữ liệu cũ bị lỗi.",
+        };
+      }
+    }
+    if (Array.isArray(timeCode)) {
+      const data = timeCode.map((timeCode) => ({
+        date: moment(date).format("L"),
+        timeCode: timeCode,
+        staffId,
+        maxNumber,
+      }));
+
+      //  Check if have schedule
+      const scheduleExists = await db.HealthExaminationSchedule.findAll({
+        where: {
+          date: moment(date).format("L"),
+          timeCode: {
+            [Op.in]: timeCode,
+          },
+          staffId,
+        },
+        raw: true,
+      });
+
+      if (scheduleExists.length > 0) {
+        return {
+          statusCode: 4,
+          msg: `Lịch đã được tạo.* ${scheduleExists.reduce(
+            (init, sche) => init + " - " + sche.timeCode,
+            ""
+          )} *`,
+          data: scheduleExists,
+        };
+      }
+      // Create schedule
+      const scheduleDoc = await db.HealthExaminationSchedule.bulkCreate(data);
+      if (scheduleDoc) {
+        return {
+          statusCode: 0,
+          msg: `${
+            isUpdateDate ? "Cập nhật lịch thành công." : "Tạo lịch thành công."
+          }`,
+          data: scheduleDoc,
+        };
+      } else {
+        return {
+          statusCode: 3,
+          msg: "Tạo lịch thất bại. Đã có lỗi xảy ra.",
+        };
+      }
+    } else {
+      const scheduleExists = await db.HealthExaminationSchedule.findOne({
+        where: {
+          date: moment(date).format("L"),
+          timeCode,
+          staffId,
+        },
+      });
+      if (scheduleExists)
+        return {
+          statusCode: 4,
+          msg: "Lịch này đã được tạo.",
+        };
+      const scheduleDoc = await db.HealthExaminationSchedule.create({
+        date: moment(date).format("L"),
+        maxNumber,
+        timeCode,
+        staffId,
+      });
+      if (scheduleDoc) {
+        return {
+          statusCode: 0,
+          msg: `${
+            isUpdateDate ? "Cập nhật lịch thành công." : "Tạo lịch thành công."
+          }`,
+          data: scheduleDoc,
+        };
+      } else {
+        return {
+          statusCode: 3,
+          msg: `${
+            isUpdateDate
+              ? "Cập nhậtlịch thất bại. Đã có lỗi xảy ra..."
+              : "Tạo lịch thất bại. Đã có lỗi xảy ra.."
+          }`,
+        };
+      }
+    }
+  }
+
+  async deleteHealthExamSchedule(id) {
+    const isDeleted = await db.HealthExaminationSchedule.destroy({
+      force: true,
+      where: {
+        id,
+      },
+    });
+
+    if (isDeleted > 0)
       return {
         statusCode: 0,
         msg: "Đã xóa thành công.",
