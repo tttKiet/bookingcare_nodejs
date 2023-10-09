@@ -493,6 +493,51 @@ class StaffServices {
         msg: "Xóa code thất bại.",
       };
   }
+
+  async getDoctorWorking({
+    offset = 0,
+    limit = 8,
+    doctorName,
+    doctorEmail,
+    workingId,
+  }) {
+    const whereQueryDoctor = {};
+    const whereQueryWorking = {};
+    doctorName &&
+      (whereQueryDoctor.fullName = {
+        [Op.substring]: doctorName,
+      });
+    doctorEmail &&
+      (whereQueryDoctor.email = {
+        [Op.substring]: doctorEmail,
+      });
+
+    workingId && (whereQueryWorking.id = workingId);
+
+    const docs = await db.Working.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQueryWorking,
+      include: [
+        {
+          model: db.Staff,
+          where: whereQueryDoctor,
+        },
+      ],
+      nest: true,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...docs,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
 }
 
 export default new StaffServices();

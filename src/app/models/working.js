@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
       Working.hasMany(models.WorkRoom, {
         foreignKey: "workingId",
       });
+
+      Working.hasMany(models.HealthExaminationSchedule, {
+        foreignKey: "workingId",
+      });
     }
   }
   Working.init(

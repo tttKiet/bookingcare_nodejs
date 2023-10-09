@@ -19,7 +19,7 @@ module.exports = {
 
         type: Sequelize.STRING,
       },
-      staffId: {
+      workingId: {
         allowNull: false,
         type: Sequelize.UUID,
       },

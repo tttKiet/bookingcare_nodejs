@@ -14,8 +14,8 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "timeCode",
         as: "TimeCode",
       });
-      HealthExaminationSchedule.belongsTo(models.Staff, {
-        foreignKey: "staffId",
+      HealthExaminationSchedule.belongsTo(models.Working, {
+        foreignKey: "workingId",
       });
     }
   }
@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
       timeCode: {
         type: DataTypes.STRING,
       },
-      staffId: {
+      workingId: {
         type: DataTypes.UUID,
       },
       maxNumber: {

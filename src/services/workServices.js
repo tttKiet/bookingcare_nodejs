@@ -495,11 +495,18 @@ class WorkServices {
   }
 
   // Health Examination Schedule
-  async getHealthExamSchedule({ offset = 0, limit = 100, staffId, date }) {
+  async getHealthExamSchedule({
+    offset = 0,
+    limit = 100,
+    staffId,
+    date,
+    workingId,
+  }) {
     const whereQueryDoctor = {};
-
     const whereQuery = {};
-    staffId && (whereQuery.staffId = staffId);
+    const whereQueryWorking = {};
+    staffId && (whereQueryWorking.staffId = staffId);
+    workingId && (whereQueryWorking.id = workingId);
     date && (whereQuery.date = moment(date).format("L"));
     const documents = await db.HealthExaminationSchedule.findAndCountAll({
       raw: true,
@@ -509,11 +516,12 @@ class WorkServices {
       where: whereQuery,
       include: [
         {
-          model: db.Staff,
+          model: db.Working,
           attributes: {
             exclude: ["createdAt", "updatedAt"],
           },
-          where: whereQueryDoctor,
+          where: whereQueryWorking,
+          include: [db.Staff, db.HealthFacility],
         },
         {
           model: db.Code,
@@ -539,10 +547,10 @@ class WorkServices {
     date,
     maxNumber,
     timeCode,
-    staffId,
+    workingId,
     id,
   }) {
-    const isWorking = await this.isWorking(staffId);
+    const isWorking = await db.Working.findByPk(workingId);
     if (!isWorking)
       return {
         statusCode: 7,
@@ -564,25 +572,17 @@ class WorkServices {
           msg: `Không tìm thấy mã thời gian nào đó.`,
         };
       }
-
-      const staffDoc = await db.Staff.findByPk(staffId);
-      if (!staffDoc)
-        return {
-          statusCode: 2,
-          msg: `Không tìm thấy ${staffId}.`,
-        };
     } else {
       // Validate
-      const [staffDoc, codeDoc] = await Promise.all([
-        db.Staff.findByPk(staffId),
+      const [codeDoc] = await Promise.all([
         db.Code.findByPk(timeCode, {
           raw: true,
         }),
       ]);
-      if (!staffDoc || !codeDoc) {
+      if (!codeDoc) {
         return {
           statusCode: 1,
-          msg: `Không tìm thấy ${staffId} or ${timeCode}.`,
+          msg: `Không tìm thấy ${timeCode}.`,
         };
       }
     }
@@ -619,7 +619,7 @@ class WorkServices {
       const data = timeCode.map((timeCode) => ({
         date: moment(date).format("L"),
         timeCode: timeCode,
-        staffId,
+        workingId,
         maxNumber,
       }));
 
@@ -630,7 +630,7 @@ class WorkServices {
           timeCode: {
             [Op.in]: timeCode,
           },
-          staffId,
+          workingId,
         },
         raw: true,
       });
@@ -666,7 +666,7 @@ class WorkServices {
         where: {
           date: moment(date).format("L"),
           timeCode,
-          staffId,
+          workingId,
         },
       });
       if (scheduleExists)
@@ -678,7 +678,7 @@ class WorkServices {
         date: moment(date).format("L"),
         maxNumber,
         timeCode,
-        staffId,
+        workingId,
       });
       if (scheduleDoc) {
         return {
