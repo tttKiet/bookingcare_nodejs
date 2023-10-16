@@ -1,15 +1,14 @@
 import {
   authServices,
   healthFacilitiesServices,
-  userServices,
   workServices,
 } from "../../services";
-import { uploadAwsS3, s3 } from "../../middleWares";
+// import { uploadAwsS3, s3 } from "../../middleWares";
 import { deleteImagesFromS3 } from "../../untils";
 import staffServices from "../../services/staffServices";
 class AdminController {
   // [POST] /admin/health-facilities/type
-  async handleCreateTypeHealthFacilities(req, res, next) {
+  async handleCreateTypeHealthFacilities(req, res) {
     const { name } = req.body;
     if (!name)
       return res
@@ -33,7 +32,7 @@ class AdminController {
   }
 
   // [GET] /admin/health-facilities/type
-  async handleGetTypeHealthFacilities(req, res, next) {
+  async handleGetTypeHealthFacilities(req, res) {
     try {
       const data = await healthFacilitiesServices.getTypeHealthFacilites();
       if (data.statusCode === 0) {
@@ -49,7 +48,7 @@ class AdminController {
   }
 
   // [PATCH] /admin/health-facilities/type
-  async handleUpdateTypeHealthFacilities(req, res, next) {
+  async handleUpdateTypeHealthFacilities(req, res) {
     const { id, name } = req.body;
     if (!id || !name)
       return res.status(404).json({
@@ -74,7 +73,7 @@ class AdminController {
   }
 
   // [DELETE] /admin/health-facilities/type
-  async handleDeleteTypeHealthFacilities(req, res, next) {
+  async handleDeleteTypeHealthFacilities(req, res) {
     const { id } = req.body;
     if (!id)
       return res.status(404).json({
@@ -98,7 +97,7 @@ class AdminController {
   }
 
   // [GET] /admin/health-facilities/infomation/health-facilities-type
-  async handleGetInfoTypeAndHealthFacilities(req, res, next) {
+  async handleGetInfoTypeAndHealthFacilities(req, res) {
     try {
       const data =
         await healthFacilitiesServices.getInfoDashboardTypeAndHealthFacilites();
@@ -115,7 +114,7 @@ class AdminController {
   }
 
   // [POST] /admin/health-facilities
-  async handleCreateHealthFacility(req, res, next) {
+  async handleCreateHealthFacility(req, res) {
     const files = req?.files;
 
     if (!files) {
@@ -165,7 +164,7 @@ class AdminController {
   }
 
   // [GET] /admin/health-facilities
-  async handleGetHealthFacilities(req, res, next) {
+  async handleGetHealthFacilities(req, res) {
     const {
       limit,
       offset,
@@ -214,7 +213,7 @@ class AdminController {
   }
 
   // [GET] /admin/health-facilities
-  async handleGetHealthFacilityWithEmail(req, res, next) {
+  async handleGetHealthFacilityWithEmail(req, res) {
     const { limit, offset, email } = req.query;
 
     try {
@@ -236,7 +235,7 @@ class AdminController {
   }
 
   // [PATCH] /admin/health-facilities
-  async handleUpdateHealthFacility(req, res, next) {
+  async handleUpdateHealthFacility(req, res) {
     const files = req?.files;
     const fileUrls = files.map((f) => {
       return f.location;
@@ -287,7 +286,7 @@ class AdminController {
   }
 
   // [DELETE] /admin/health-faciliies
-  async handleDeleteHealthFacility(req, res, next) {
+  async handleDeleteHealthFacility(req, res) {
     const { id } = req.body;
 
     try {
@@ -306,7 +305,7 @@ class AdminController {
   }
 
   // [POST] /admin/health-facility/room
-  async handleCreateOrUpdateHealRoom(req, res, next) {
+  async handleCreateOrUpdateHealRoom(req, res) {
     const { oldRoomNumber, healthFacilityId, roomNumber, capacity } = req.body;
 
     if (!oldRoomNumber && (!healthFacilityId || !roomNumber || !capacity)) {
@@ -339,7 +338,7 @@ class AdminController {
   }
 
   // [GET] /admin/health-facility/room
-  async handleGetHealRoom(req, res, next) {
+  async handleGetHealRoom(req, res) {
     const { healthFacilityId } = req.query;
 
     try {
@@ -358,7 +357,7 @@ class AdminController {
   }
 
   // [DELETE] /admin/health-facility/room
-  async handleDeleteHealRoom(req, res, next) {
+  async handleDeleteHealRoom(req, res) {
     const { roomNumber, healthFacilityId } = req.body;
 
     if (!roomNumber || !healthFacilityId) {
@@ -383,7 +382,7 @@ class AdminController {
   }
 
   // [POST] /admin/specialist
-  async handleCreateOrUpdateSpecialist(req, res, next) {
+  async handleCreateOrUpdateSpecialist(req, res) {
     // Create and Update specialist
     const { id, name, descriptionDisease, descriptionDoctor } = req.body;
 
@@ -414,7 +413,7 @@ class AdminController {
   }
 
   // [GET] /admin/specialist
-  async handleGetSpecialist(req, res, next) {
+  async handleGetSpecialist(req, res) {
     const { limit, offset } = req.query;
     try {
       const data = await healthFacilitiesServices.getSpecialist({
@@ -432,7 +431,7 @@ class AdminController {
     }
   }
   // [GET] /admin/specialist/:id
-  async handleGetSpecialistById(req, res, next) {
+  async handleGetSpecialistById(req, res) {
     const { id } = req.params;
     try {
       const data = await healthFacilitiesServices.getSpecialistById({ id });
@@ -448,7 +447,7 @@ class AdminController {
   }
 
   // [DELETE] /admin/specialist
-  async handleDeleteSpecialist(req, res, next) {
+  async handleDeleteSpecialist(req, res) {
     const { id } = req.body;
     if (!id) {
       return res.status(400).json({
@@ -472,7 +471,7 @@ class AdminController {
   }
 
   // [GET] /admin/academic-degree
-  async handleGetAcademicDegree(req, res, next) {
+  async handleGetAcademicDegree(req, res) {
     const { limit, offset } = req.query;
     try {
       const data = await staffServices.getAcademicDegree({
@@ -491,7 +490,7 @@ class AdminController {
   }
 
   // [POST] /admin/academic-degree
-  async handleCreateOrUpdateAcademicDegree(req, res, next) {
+  async handleCreateOrUpdateAcademicDegree(req, res) {
     const { id, name } = req.body;
     if (!name) {
       return res.status(400).json({
@@ -516,7 +515,7 @@ class AdminController {
   }
 
   // [DELETE] /admin/academic-degree
-  async handleDeleteAcademicDegree(req, res, next) {
+  async handleDeleteAcademicDegree(req, res) {
     const { id } = req.body;
     if (!id) {
       return res.status(400).json({
@@ -540,7 +539,7 @@ class AdminController {
   }
 
   // [POST] /admin/staff
-  async handleCreateOrUpdateStaff(req, res, next) {
+  async handleCreateOrUpdateStaff(req, res) {
     const {
       id,
       email,
@@ -602,7 +601,7 @@ class AdminController {
   }
 
   // [GET] /admin/staff
-  async handleGetStaff(req, res, next) {
+  async handleGetStaff(req, res) {
     const { limit, offset, email, fullName } = req.query;
     try {
       const data = await staffServices.getStaff({
@@ -623,7 +622,7 @@ class AdminController {
   }
 
   // [GET] /admin/staff/doctor
-  async getDoctorWithEmail(req, res, next) {
+  async getDoctorWithEmail(req, res) {
     const { limit, offset, email } = req.query;
     if (!email) {
       return res.status(400).json({
@@ -649,7 +648,7 @@ class AdminController {
   }
 
   // [GET] /admin/role
-  async handleGetRole(req, res, next) {
+  async handleGetRole(req, res) {
     const { option } = req.query;
     try {
       const data = await authServices.getRole({
@@ -667,7 +666,7 @@ class AdminController {
   }
 
   // [POST] /admin/work
-  async handleCreateOrUpdateWork(req, res, next) {
+  async handleCreateOrUpdateWork(req, res) {
     const { staffId, healthFacilityId, startDate, endDate, id } = req.body;
     if (!id && (!staffId || !healthFacilityId || !startDate)) {
       return res.status(401).json({
@@ -695,7 +694,7 @@ class AdminController {
   }
 
   // [GET] /admin/work
-  async handleGetWorking(req, res, next) {
+  async handleGetWorking(req, res) {
     const {
       doctorName,
       id,
@@ -726,7 +725,7 @@ class AdminController {
   }
 
   // [DELETE] /admin/work
-  async handleDeleteWorking(req, res, next) {
+  async handleDeleteWorking(req, res) {
     const { id } = req.body;
 
     try {
@@ -743,7 +742,7 @@ class AdminController {
   }
 
   // [GET] /admin/work-room
-  async handleGetWorkRoom(req, res, next) {
+  async handleGetWorkRoom(req, res) {
     const { limit, offset, healthFacilityId, roomNumber } = req.query;
 
     try {
@@ -766,7 +765,7 @@ class AdminController {
   }
 
   // [Delete] /admin/work-room
-  async handleDeleteWorkRoom(req, res, next) {
+  async handleDeleteWorkRoom(req, res) {
     const { id } = req.body;
     if (!id) {
       return res.status(400).json({ msg: "Id chưa được truyền vào." });
@@ -785,7 +784,7 @@ class AdminController {
   }
 
   // [POST] /admin/work-room
-  async handleCreateOrUpdateWorkRoom(req, res, next) {
+  async handleCreateOrUpdateWorkRoom(req, res) {
     const {
       ClinicRoomRoomNumber,
       ClinicRoomHealthFacilityId,
@@ -828,7 +827,7 @@ class AdminController {
   }
 
   // [GET] /code
-  async handleGetCode(req, res, next) {
+  async handleGetCode(req, res) {
     const { limit, offset } = req.query;
     try {
       const data = await staffServices.getCode({ limit, offset });
@@ -844,7 +843,7 @@ class AdminController {
   }
 
   // [GET] /code/time
-  async handleGetTimeCode(req, res, next) {
+  async handleGetTimeCode(req, res) {
     const { limit, offset } = req.query;
     try {
       const data = await staffServices.getTimeCode({ limit, offset });
@@ -860,7 +859,7 @@ class AdminController {
   }
 
   // [Delete] /code
-  async handleDeleteCode(req, res, next) {
+  async handleDeleteCode(req, res) {
     const { key } = req.body;
     if (!key) {
       return res.status(400).json({ msg: "Key chưa được truyền vào." });
@@ -881,7 +880,7 @@ class AdminController {
   }
 
   // [Create] /code
-  async handleCreateCode(req, res, next) {
+  async handleCreateCode(req, res) {
     const { name, key, value } = req.body;
     if (!name || !value || !key) {
       return res

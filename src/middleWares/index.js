@@ -69,12 +69,12 @@ export async function verifyTokenManager(req, res, next) {
       ["admin", "manager"].includes(req.user.role?.keyType)
     ) {
       next();
-    } else if (req?.user?.role?.id) {
+    } else if (!req?.user?.role?.id) {
       return res.status(401).json({ statusCode: 1, msg: "You are not login." });
     } else {
       return res
         .status(403)
-        .json({ statusCode: 4, msg: "You are not admin or manager." });
+        .json({ statusCode: 4, msg: "You are not admin or doctor." });
     }
   });
 }

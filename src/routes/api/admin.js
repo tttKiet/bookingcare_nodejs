@@ -1,14 +1,6 @@
-import { adminController, userController } from "../../app/controller";
-import {
-  uploadAwsS3,
-  verifyToken,
-  requireLogin,
-  verifyTokenAdmin,
-  verifyTokenManager,
-} from "../../middleWares";
+import { adminController } from "../../app/controller";
+import { uploadAwsS3, verifyTokenManager } from "../../middleWares";
 import express from "express";
-const multer = require("multer");
-const upload = multer();
 
 const router = express.Router();
 
@@ -25,7 +17,7 @@ router.delete("/work", verifyTokenManager, adminController.handleDeleteWorking);
 // WorkRoom
 router
   .route("/work-room")
-  .get(verifyTokenManager, adminController.handleGetWorkRoom)
+  .get(adminController.handleGetWorkRoom)
   .post(verifyTokenManager, adminController.handleCreateOrUpdateWorkRoom)
   .delete(verifyTokenManager, adminController.handleDeleteWorkRoom);
 // router.use(verifyTokenAdmin);

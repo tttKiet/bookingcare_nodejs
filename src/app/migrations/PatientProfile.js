@@ -29,7 +29,7 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE,
       },
-      render: {
+      gender: {
         allowNull: false,
         type: Sequelize.STRING,
       },
@@ -43,7 +43,7 @@ module.exports = {
       },
       addressCode: {
         allowNull: false,
-        type: Sequelize.STRING,
+        type: Sequelize.ARRAY(Sequelize.STRING),
       },
       userId: {
         allowNull: false,

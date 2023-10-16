@@ -417,6 +417,38 @@ class healthFacilitiesServices {
       }
     } else {
       // Update room
+      // Check if captacity less than workrooms
+      const countWorkRoom = await db.WorkRoom.count({
+        where: {
+          ClinicRoomRoomNumber: oldRoomNumber,
+          ClinicRoomHealthFacilityId: healthFacilityId,
+        },
+        group: ["workingId"],
+      });
+      if (capacity <= 0) {
+        return {
+          statusCode: 5,
+          msg: "Sức chứa của phòng phải lớn hơn 0.",
+        };
+      }
+      if (countWorkRoom.length > capacity) {
+        return {
+          statusCode: 4,
+          msg: "Số bác sỉ được phân công khám hiện tại lớn hơn sức chứa của phòng.",
+        };
+      }
+      await db.WorkRoom.update(
+        {
+          ClinicRoomRoomNumber: roomNumber,
+        },
+        {
+          where: {
+            ClinicRoomRoomNumber: oldRoomNumber,
+            ClinicRoomHealthFacilityId: healthFacilityId,
+          },
+        }
+      );
+
       const roomDoc = await db.ClinicRoom.update(
         {
           roomNumber,
@@ -464,6 +496,7 @@ class healthFacilitiesServices {
           where: whereType,
         },
       ],
+      order: [["roomNumber", "asc"]],
     });
 
     return {
@@ -475,6 +508,19 @@ class healthFacilitiesServices {
 
   // Delete a room
   async deleteRoom({ roomNumber, healthFacilityId }) {
+    // Check if workroom is already exists
+    const workDoc = await db.WorkRoom.findOne({
+      where: {
+        ClinicRoomRoomNumber: roomNumber,
+        ClinicRoomHealthFacilityId: healthFacilityId,
+      },
+    });
+    if (workDoc) {
+      return {
+        statusCode: 2,
+        msg: "Đã xóa thất bại. Tồn tại bác sỉ đang được phân công trong phòng này.",
+      };
+    }
     const count = await db.ClinicRoom.destroy({
       force: true,
       where: {

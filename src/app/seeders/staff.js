@@ -35,6 +35,22 @@ module.exports = {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
+        {
+          id: "fad3735b-c6b6-4e52-8e35-d965291eba95",
+          fullName: "Doctor 2",
+          email: "doctor2@gmail.com",
+          password:
+            "$2b$10$iuH69vrqzsaadhYLa0QPN.PK5ToH6IL7KCOmnbEe.wPiLMSoYuFaK",
+          phone: "0967688851",
+          academicDegreeId: "5e065f83-3dc9-471b-88a7-9e0bc22b2fbc",
+          specialistId: "53706c2c-eeef-4d2c-8c1a-580c0f05153f",
+          experience: "2 year fro Miscrosoft",
+          gender: "female",
+          address: "Can thor",
+          roleId: "f1e9f129-da8d-4db0-93ee-46bb422fdebd",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ],
       {}
     );

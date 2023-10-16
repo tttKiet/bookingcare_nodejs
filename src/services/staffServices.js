@@ -500,6 +500,7 @@ class StaffServices {
     doctorName,
     doctorEmail,
     workingId,
+    healthFacilityId,
   }) {
     const whereQueryDoctor = {};
     const whereQueryWorking = {};
@@ -512,6 +513,8 @@ class StaffServices {
         [Op.substring]: doctorEmail,
       });
 
+    healthFacilityId && (whereQueryWorking.healthFacilityId = healthFacilityId);
+
     workingId && (whereQueryWorking.id = workingId);
 
     const docs = await db.Working.findAndCountAll({
@@ -523,6 +526,7 @@ class StaffServices {
         {
           model: db.Staff,
           where: whereQueryDoctor,
+          include: [db.AcademicDegree, db.Specialist],
         },
       ],
       nest: true,

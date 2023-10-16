@@ -1,9 +1,29 @@
 import { userController } from "../../app/controller";
 import express from "express";
-import { verifyToken } from "../../middleWares";
+import { requireLogin } from "../../middleWares";
 const router = express.Router();
 
 // router.post("/", userController.handleRegister);
+
+// Patient Profile
+router
+  .route("/patient-profile")
+  .get(requireLogin, userController.handleGetPatientProfile)
+  .post(requireLogin, userController.handleCreateOrUpdatePatientProfile)
+  .delete(requireLogin, userController.handleDeletePatientProfile);
+
+// Booking and record
+router.route("/booking").post(requireLogin, userController.handleBooking);
+
+router
+  .route("/health-record")
+  .get(requireLogin, userController.handleGetHealthRecord);
+
+// Get list doc tor working and schedule, price
+router.get(
+  "/list-doctor-working-health",
+  userController.getDoctorWorkingOfHealth
+);
 
 router.post("/", userController.handleCreateOrUpdateUser);
 router.get("/", userController.handleGetUser);

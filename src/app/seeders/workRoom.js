@@ -4,19 +4,15 @@ const { v4: uuidv4 } = require("uuid");
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.bulkInsert(
-      "Users",
+      "WorkRooms",
       [
         {
-          id: "f481c6cc-5692-4d3c-b3c3-4fa6c07c9502",
-          fullName: "Bui Tuan Kiet",
-          email: "user@gmail.com",
-          password:
-            "$2b$10$iuH69vrqzsaadhYLa0QPN.PK5ToH6IL7KCOmnbEe.wPiLMSoYuFaK",
-          phone: "0967688854",
-          gender: 1,
-          address: "Can thor",
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          id: "6da5e69f-7ec5-45fb-99a3-d7a024bfca4d",
+          ClinicRoomRoomNumber: 101,
+          ClinicRoomHealthFacilityId: "cbac52e0-bb9d-4ab0-9ef5-0c77c0451067",
+          checkUpPrice: 200000,
+          applyDate: "2023-06-20T17:10:00.420Z",
+          workingId: "f245cec7-d733-45d4-be2f-2d2dd3536aea",
         },
       ],
       {}

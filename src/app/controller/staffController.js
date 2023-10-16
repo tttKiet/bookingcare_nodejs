@@ -70,7 +70,14 @@ class StaffController {
 
   // [GET] /working
   async handleGetDoctorWorking(req, res, next) {
-    const { offset, limit, doctorName, doctorEmail, workingId } = req.query;
+    const {
+      offset,
+      limit,
+      doctorName,
+      doctorEmail,
+      workingId,
+      healthFacilityId,
+    } = req.query;
     try {
       const data = await staffServices.getDoctorWorking({
         offset,
@@ -78,6 +85,7 @@ class StaffController {
         doctorName,
         doctorEmail,
         workingId,
+        healthFacilityId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

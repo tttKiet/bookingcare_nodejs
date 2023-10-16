@@ -9,39 +9,32 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      Booking.belongsTo(models.Code, {
-        foreignKey: "statusCode",
-        targetKey: "key",
-        as: "status",
+      Booking.belongsTo(models.HealthExaminationSchedule, {
+        foreignKey: "healthExaminationScheduleId",
       });
 
-      Booking.belongsTo(models.Code, {
-        foreignKey: "timeCode",
-        targetKey: "key",
-        as: "time",
-      });
-      Booking.belongsTo(models.Code, {
+      Booking.belongsTo(models.PatientProfile, {
         foreignKey: "patientProfileId",
+      });
+
+      Booking.hasOne(models.HealthRecord, {
+        foreignKey: "bookingId",
       });
     }
   }
   Booking.init(
     {
       id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
         primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
+        type: DataTypes.UUID,
       },
-      statusCode: {
+      descriptionDisease: {
+        primaryKey: true,
         type: DataTypes.STRING,
       },
-      timeCode: {
-        type: DataTypes.STRING,
-      },
-      date: {
-        type: DataTypes.STRING,
-      },
-      staffId: {
+      healthExaminationScheduleId: {
         allowNull: false,
         type: DataTypes.UUID,
       },

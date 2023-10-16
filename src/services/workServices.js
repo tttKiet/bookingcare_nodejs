@@ -1,7 +1,6 @@
 import { Op, Sequelize } from "sequelize";
 import db from "../app/models";
-import bcrypt from "bcrypt";
-const saltRounds = 10;
+
 import moment from "moment";
 
 class WorkServices {
@@ -14,7 +13,7 @@ class WorkServices {
       });
     let workCheck;
     // End date == null => Dang lam viec
-    if (endDate === null) {
+    if (!endDate) {
       workCheck = await db.Working.findOne({
         where: {
           ...workWhere,
@@ -301,7 +300,6 @@ class WorkServices {
         id,
       },
     });
-    console.log(workingDoc);
 
     if (workingDoc > 0)
       return {
@@ -324,6 +322,20 @@ class WorkServices {
       (whereQueryWorkRoom.ClinicRoomHealthFacilityId = healthFacilityId);
 
     roomNumber && (whereQueryWorkRoom.ClinicRoomRoomNumber = roomNumber);
+    const res = {};
+
+    if (healthFacilityId && roomNumber) {
+      const countWorkRoom = await db.WorkRoom.count({
+        where: {
+          ClinicRoomRoomNumber: roomNumber,
+          ClinicRoomHealthFacilityId: healthFacilityId,
+        },
+        group: ["workingId"],
+      });
+
+      res.currentParticipate = countWorkRoom.length;
+    }
+
     const docs = await db.WorkRoom.findAndCountAll({
       raw: true,
       offset,
@@ -343,6 +355,7 @@ class WorkServices {
           include: [
             {
               model: db.Staff,
+              include: [db.AcademicDegree, db.Specialist],
             },
           ],
         },
@@ -354,6 +367,7 @@ class WorkServices {
       msg: "Lấy thông tin thành công.",
       data: {
         ...docs,
+        ...res,
         limit: limit,
         offset: offset,
       },
@@ -394,10 +408,13 @@ class WorkServices {
       where: {
         ClinicRoomRoomNumber,
         ClinicRoomHealthFacilityId,
+        workingId: {
+          [Op.ne]: workingId,
+        },
       },
+      group: ["workingId"],
     });
-
-    if (countWorkRoom >= clinicRoomDoc.capacity) {
+    if (countWorkRoom.length >= clinicRoomDoc.capacity) {
       return {
         statusCode: 7,
         msg: "Phòng đã đủ chổ khám.",
@@ -412,11 +429,30 @@ class WorkServices {
     }
 
     const datePassed = new Date(applyDate).toISOString();
+    const workRoomExistsOrtherRoom = await db.WorkRoom.findOne({
+      where: {
+        workingId,
+      },
+      raw: true,
+    });
+
+    if (
+      workRoomExistsOrtherRoom &&
+      workRoomExistsOrtherRoom.ClinicRoomRoomNumber !== ClinicRoomRoomNumber
+    )
+      return {
+        statusCode: 402,
+        msg: `Bác sỉ đang được phân công ở phòng ${workRoomExistsOrtherRoom.ClinicRoomRoomNumber}.`,
+      };
     const workRoomExists = await db.WorkRoom.findOne({
-      where: Sequelize.where(
-        Sequelize.fn("DATE", Sequelize.col("applyDate")),
-        Sequelize.fn("DATE", Sequelize.literal(`'${datePassed}'`))
-      ),
+      where: {
+        [Op.or]: [
+          Sequelize.where(
+            Sequelize.fn("DATE", Sequelize.col("applyDate")),
+            Sequelize.fn("DATE", Sequelize.literal(`'${datePassed}'`))
+          ),
+        ],
+      },
       raw: true,
     });
 
@@ -473,6 +509,7 @@ class WorkServices {
       }
     }
   }
+
   async deleteWorkRoom(id) {
     const isDeleted = await db.WorkRoom.destroy({
       force: true,
@@ -494,6 +531,87 @@ class WorkServices {
     }
   }
 
+  // return a list of id doctor
+  async getListIdDoctorWorking(healthFacilityId) {
+    const workDoc = await db.Working.findAll({
+      where: {
+        healthFacilityId,
+        [Op.or]: [
+          {
+            endDate: null,
+          },
+          {
+            endDate: {
+              [Op.gt]: new Date(),
+            },
+          },
+        ],
+      },
+      raw: true,
+    });
+    return workDoc;
+  }
+
+  async getDoctorWorkingAtHealth({
+    offset = 0,
+    limit = 10,
+    healthFacilityId,
+    // roomNumber,
+  }) {
+    const listIdDoctorWorking = await this.getListIdDoctorWorking(
+      healthFacilityId
+    );
+
+    const promiseAll = listIdDoctorWorking.map((working) =>
+      db.WorkRoom.findOne({
+        raw: true,
+        nest: true,
+        include: [
+          {
+            model: db.Working,
+            where: {
+              staffId: working.staffId,
+              healthFacilityId: healthFacilityId,
+            },
+            include: [
+              {
+                model: db.Staff,
+                include: [db.AcademicDegree, db.Specialist],
+              },
+            ],
+          },
+          {
+            model: db.ClinicRoom,
+            include: [
+              {
+                model: db.HealthFacility,
+              },
+            ],
+          },
+        ],
+
+        where: {
+          applyDate: {
+            [Op.lte]: new Date(),
+          },
+        },
+        order: [["applyDate", "DESC"]],
+      })
+    );
+
+    const listWorkRoom = await Promise.all(promiseAll);
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        rows: listWorkRoom.filter((l) => l !== null),
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
   // Health Examination Schedule
   async getHealthExamSchedule({
     offset = 0,
@@ -502,7 +620,7 @@ class WorkServices {
     date,
     workingId,
   }) {
-    const whereQueryDoctor = {};
+    // const whereQueryDoctor = {};
     const whereQuery = {};
     const whereQueryWorking = {};
     staffId && (whereQueryWorking.staffId = staffId);
@@ -548,13 +666,26 @@ class WorkServices {
     maxNumber,
     timeCode,
     workingId,
-    id,
+    // id,
   }) {
-    const isWorking = await db.Working.findByPk(workingId);
+    const isWorking = await db.Working.findByPk(workingId, {
+      raw: true,
+    });
     if (!isWorking)
       return {
         statusCode: 7,
         msg: "Bác sỉ chưa được thêm vào nơi làm việc.",
+      };
+    const workRoomCreated = await db.WorkRoom.findOne({
+      where: {
+        workingId,
+      },
+    });
+
+    if (!workRoomCreated)
+      return {
+        statusCode: 8,
+        msg: "Bác sỉ chưa được phân công vào phòng làm việc.",
       };
     if (Array.isArray(timeCode)) {
       const codes = await db.Code.findAll({

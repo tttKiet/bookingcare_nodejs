@@ -42,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
       birthDay: {
         type: DataTypes.DATE,
       },
-      render: {
+      gender: {
         type: DataTypes.STRING,
       },
       cccd: {
@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
       },
       addressCode: {
-        type: DataTypes.STRING,
+        type: DataTypes.ARRAY(DataTypes.STRING),
       },
       userId: {
         type: DataTypes.UUID,
