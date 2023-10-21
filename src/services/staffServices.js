@@ -1,6 +1,7 @@
 import { Op, where } from "sequelize";
 import db from "../app/models";
 import bcrypt from "bcrypt";
+import userServices from "./userServices";
 const saltRounds = 10;
 
 class StaffServices {
@@ -154,6 +155,44 @@ class StaffServices {
         limit: limit,
         offset: offset,
       },
+    };
+  }
+
+  // Get Doctor By Id
+  async getDoctorById(id) {
+    const accounts = await db.Staff.findByPk(id, {
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Role,
+          where: {
+            keyType: "doctor",
+          },
+        },
+        {
+          model: db.AcademicDegree,
+          attributes: {
+            exclude: ["createdAt", "updatedAt"],
+          },
+        },
+        {
+          model: db.Specialist,
+          attributes: {
+            exclude: ["createdAt", "updatedAt"],
+          },
+        },
+      ],
+    });
+    if (accounts)
+      return {
+        statusCode: 0,
+        msg: "Lấy thành công.",
+        data: accounts,
+      };
+    return {
+      statusCode: 0,
+      msg: "Không tìm thấy bác sỉ.",
     };
   }
 

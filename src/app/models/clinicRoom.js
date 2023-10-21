@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "healthFacilityId",
       });
 
-      ClinicRoom.hasMany(models.WorkRoom, { onDelete: "cascade", hooks: true });
+      ClinicRoom.hasMany(models.WorkRoom);
     }
   }
   ClinicRoom.init(

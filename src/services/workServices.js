@@ -2,6 +2,7 @@ import { Op, Sequelize } from "sequelize";
 import db from "../app/models";
 
 import moment from "moment";
+import userServices from "./userServices";
 
 class WorkServices {
   // Work
@@ -90,9 +91,12 @@ class WorkServices {
     }
   }
 
-  async isWorking(staffId) {
+  async isWorking(staffId, healthFacilityId) {
+    const where = {};
+    healthFacilityId && (where.healthFacilityId = healthFacilityId);
     const workDoc = await db.Working.findOne({
       where: {
+        ...where,
         staffId,
         [Op.or]: [
           {
@@ -107,7 +111,7 @@ class WorkServices {
       },
       raw: true,
     });
-    return !!workDoc;
+    return workDoc;
   }
 
   async createOrUpdateWorking({
@@ -344,6 +348,20 @@ class WorkServices {
       include: [
         {
           model: db.ClinicRoom,
+          on: {
+            [Op.and]: [
+              {
+                roomNumber: {
+                  [Op.col]: "WorkRoom.ClinicRoomRoomNumber",
+                },
+                healthFacilityId: {
+                  [Op.col]: "WorkRoom.ClinicRoomHealthFacilityId",
+                },
+              },
+            ],
+          },
+          // Sequelize.col(
+
           include: [
             {
               model: db.HealthFacility,
@@ -552,6 +570,26 @@ class WorkServices {
     return workDoc;
   }
 
+  async getHealthExamScheduleToDate(staffId, dateNumber = 7) {
+    const schedule = await db.HealthExaminationSchedule.findAll({
+      include: [
+        {
+          model: db.Working,
+          where: {
+            staffId,
+          },
+        },
+      ],
+      limit: dateNumber,
+      attributes: [
+        [Sequelize.fn("COUNT", Sequelize.col("Working.id")), "workingCount"],
+        "date",
+      ],
+      group: ["date", "Working.id"],
+      order: [["date", "asc"]],
+    });
+    return schedule.map((s) => s.date);
+  }
   async getDoctorWorkingAtHealth({
     offset = 0,
     limit = 10,
@@ -562,50 +600,60 @@ class WorkServices {
       healthFacilityId
     );
 
-    const promiseAll = listIdDoctorWorking.map((working) =>
-      db.WorkRoom.findOne({
-        raw: true,
-        nest: true,
-        include: [
-          {
-            model: db.Working,
-            where: {
-              staffId: working.staffId,
-              healthFacilityId: healthFacilityId,
+    const promiseAll = listIdDoctorWorking.map((working) => {
+      return Promise.all([
+        db.WorkRoom.findOne({
+          raw: true,
+          nest: true,
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId: working.staffId,
+                healthFacilityId: healthFacilityId,
+              },
+              include: [
+                {
+                  model: db.Staff,
+                  include: [db.AcademicDegree, db.Specialist],
+                },
+              ],
             },
-            include: [
-              {
-                model: db.Staff,
-                include: [db.AcademicDegree, db.Specialist],
-              },
-            ],
+            {
+              model: db.ClinicRoom,
+              include: [
+                {
+                  model: db.HealthFacility,
+                },
+              ],
+            },
+          ],
+          where: {
+            applyDate: {
+              [Op.lte]: new Date(),
+            },
           },
-          {
-            model: db.ClinicRoom,
-            include: [
-              {
-                model: db.HealthFacility,
-              },
-            ],
-          },
-        ],
+          order: [["applyDate", "DESC"]],
+        }),
+        this.getHealthExamScheduleToDate(working.staffId),
+      ]);
+    });
 
-        where: {
-          applyDate: {
-            [Op.lte]: new Date(),
-          },
-        },
-        order: [["applyDate", "DESC"]],
-      })
-    );
-
-    const listWorkRoom = await Promise.all(promiseAll);
+    const workRoomAndSchedule = await Promise.all(promiseAll);
 
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
       data: {
-        rows: listWorkRoom.filter((l) => l !== null),
+        // rows: listWorkRoom,
+        rows: workRoomAndSchedule
+          .filter(([workRoom]) => workRoom !== null)
+          .map(([workRoom, schedule]) => {
+            return {
+              ...workRoom,
+              schedules: schedule || [],
+            };
+          }),
         limit: limit,
         offset: offset,
       },
@@ -619,6 +667,7 @@ class WorkServices {
     staffId,
     date,
     workingId,
+    type = "all",
   }) {
     // const whereQueryDoctor = {};
     const whereQuery = {};
@@ -626,6 +675,11 @@ class WorkServices {
     staffId && (whereQueryWorking.staffId = staffId);
     workingId && (whereQueryWorking.id = workingId);
     date && (whereQuery.date = moment(date).format("L"));
+    if (type === "current") {
+      whereQuery.date = {
+        [Op.gt]: moment(new Date()).format("L"),
+      };
+    }
     const documents = await db.HealthExaminationSchedule.findAndCountAll({
       raw: true,
       offset,
@@ -639,7 +693,13 @@ class WorkServices {
             exclude: ["createdAt", "updatedAt"],
           },
           where: whereQueryWorking,
-          include: [db.Staff, db.HealthFacility],
+          include: [
+            {
+              model: db.Staff,
+              include: [db.Specialist],
+            },
+            db.HealthFacility,
+          ],
         },
         {
           model: db.Code,
@@ -650,11 +710,21 @@ class WorkServices {
       nest: true,
     });
 
+    const promiseFields = documents.rows.map(async (row) => {
+      const isAvailableBooking = await userServices.isBooking(row.id);
+      return {
+        ...row,
+        isAvailableBooking,
+      };
+    });
+
+    const docs = await Promise.all(promiseFields);
+
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
       data: {
-        ...documents,
+        ...docs,
         limit: limit,
         offset: offset,
       },

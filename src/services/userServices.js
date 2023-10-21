@@ -377,9 +377,9 @@ class UserServices {
 
   // Booking
   async countBooking(healthExaminationScheduleId) {
-    return await db.HealthExaminationSchedule.count({
+    return await db.Booking.count({
       where: {
-        id: healthExaminationScheduleId,
+        healthExaminationScheduleId: healthExaminationScheduleId,
       },
     });
   }
@@ -474,6 +474,7 @@ class UserServices {
       return {
         statusCode: 0,
         msg: `Bạn đã đặt lịch thành công. Mã phiếu khám bệnh ${recordDoc.id}`,
+        data: recordDoc,
       };
     } else {
       return {
@@ -485,14 +486,164 @@ class UserServices {
 
   // Health records
   async getHealthRecord({ offset = 0, limit = 100, userId, healthRecordId }) {
+    async function getRecordRaw(userId, healthRecordId) {
+      const whereHealthRecord = {};
+      const wherePatientProfile = {};
+      const whereQueryBooking = {};
+      if (healthRecordId) {
+        whereHealthRecord.id = healthRecordId;
+      }
+      if (userId) {
+        wherePatientProfile.userId = userId;
+      }
+      const docs = await db.HealthRecord.findOne({
+        raw: true,
+        where: whereHealthRecord,
+        include: [
+          {
+            model: db.Booking,
+            where: whereQueryBooking,
+            include: [
+              {
+                model: db.HealthExaminationSchedule,
+                include: [
+                  {
+                    model: db.Working,
+                    include: [
+                      {
+                        model: db.Staff,
+                        include: [db.Specialist],
+                      },
+                    ],
+                  },
+                  {
+                    model: db.Code,
+                    as: "TimeCode",
+                  },
+                ],
+              },
+              {
+                model: db.PatientProfile,
+                where: wherePatientProfile,
+                include: [
+                  {
+                    model: db.User,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            model: db.Code,
+            as: "status",
+            // where: whereQueryCode,
+          },
+        ],
+        nest: true,
+      });
+      const workRoomDoc = await db.WorkRoom.findOne({
+        raw: true,
+        where: {
+          applyDate: {
+            [Op.lte]: docs.Booking.createdAt,
+          },
+        },
+        include: [
+          {
+            model: db.Working,
+            where: {
+              id: docs.Booking.HealthExaminationSchedule.Working.id,
+            },
+          },
+          {
+            model: db.ClinicRoom,
+            on: {
+              [Op.and]: [
+                {
+                  roomNumber: {
+                    [Op.col]: "WorkRoom.ClinicRoomRoomNumber",
+                  },
+                },
+                {
+                  healthFacilityId: {
+                    [Op.col]: "WorkRoom.ClinicRoomHealthFacilityId",
+                  },
+                },
+              ],
+            },
+            include: [
+              {
+                model: db.HealthFacility,
+              },
+            ],
+          },
+        ],
+        order: [["applyDate", "desc"]],
+        nest: true,
+      });
+      docs.WorkRoom = workRoomDoc;
+      return docs;
+    }
+    if (healthRecordId) {
+      const docs = await getRecordRaw(userId, healthRecordId);
+      if (docs) {
+        return {
+          statusCode: 0,
+          msg: "Lấy thông tin thành công.",
+          data: docs,
+        };
+      } else {
+        return {
+          statusCode: 1,
+          msg: "Lấy thông tin thất bại.",
+        };
+      }
+    }
+
+    // const docs = await db.HealthRecord.findAndCountAll({
+    //   raw: true,
+    //   offset,
+    //   limit,
+    //   where: whereHealthRecord,
+    //   // order: [["createdAt", "desc"]],
+    //   include: [
+    //     {
+    //       model: db.Booking,
+    //       where: whereQueryBooking,
+    //       order: [["createdAt", "desc"]],
+    //       include: [
+    //         {
+    //           model: db.HealthExaminationSchedule,
+    //         },
+    //         {
+    //           model: db.PatientProfile,
+    //           where: wherePatientProfile,
+    //           include: [
+    //             {
+    //               model: db.User,
+    //             },
+    //           ],
+    //         },
+    //       ],
+    //     },
+    //     {
+    //       model: db.Code,
+    //       as: "status",
+    //       // where: whereQueryCode,
+    //     },
+    //   ],
+    //   nest: true,
+    // });
     const whereHealthRecord = {};
     const wherePatientProfile = {};
     const whereQueryBooking = {};
-
+    if (healthRecordId) {
+      whereHealthRecord.id = healthRecordId;
+    }
     if (userId) {
       wherePatientProfile.userId = userId;
     }
-    const docs = await db.HealthRecord.findAndCountAll({
+    const docBookingUser = await db.HealthRecord.findAll({
       raw: true,
       offset,
       limit,
@@ -502,38 +653,66 @@ class UserServices {
         {
           model: db.Booking,
           where: whereQueryBooking,
+          order: [["createdAt", "desc"]],
           include: [
-            {
-              model: db.HealthExaminationSchedule,
-            },
             {
               model: db.PatientProfile,
               where: wherePatientProfile,
-              include: [
-                {
-                  model: db.User,
-                },
-              ],
             },
           ],
-        },
-        {
-          model: db.Code,
-          as: "status",
-          // where: whereQueryCode,
         },
       ],
       nest: true,
     });
-
+    const resultPromise = docBookingUser.map(
+      async (doc) => await getRecordRaw(userId, doc.id)
+    );
+    // const resultPromise = docs.rows.map(async (doc) => {
+    //   const workRoomDoc = await db.WorkRoom.findOne({
+    //     raw: true,
+    //     where: {
+    //       applyDate: {
+    //         [Op.lte]: doc.Booking.createdAt,
+    //       },
+    //     },
+    //     include: [
+    //       {
+    //         model: db.Working,
+    //         where: {
+    //           id: doc.Booking.HealthExaminationSchedule.Working.id,
+    //         },
+    //       },
+    //       {
+    //         model: db.ClinicRoom,
+    //         on: {
+    //           [Op.and]: [
+    //             {
+    //               roomNumber: {
+    //                 [Op.col]: "WorkRoom.ClinicRoomRoomNumber",
+    //               },
+    //             },
+    //             {
+    //               healthFacilityId: {
+    //                 [Op.col]: "WorkRoom.ClinicRoomHealthFacilityId",
+    //               },
+    //             },
+    //           ],
+    //         },
+    //       },
+    //     ],
+    //     order: [["applyDate", "desc"]],
+    //     nest: true,
+    //   });
+    //   return {
+    //     ...doc,
+    //     WorkRoom: workRoomDoc,
+    //   };
+    // });
+    const result = await Promise.all(resultPromise);
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
-      data: {
-        ...docs,
-        limit: limit,
-        offset: offset,
-      },
+      data: result,
     };
   }
 }

@@ -1,8 +1,8 @@
-import { staffServices, userServices, workServices } from "../../services";
+import { staffServices, workServices } from "../../services";
 
 class StaffController {
   // [Create or update] /health-exam-schedule
-  async handleCreateOrUpdateHealthExamSchedule(req, res, next) {
+  async handleCreateOrUpdateHealthExamSchedule(req, res) {
     const { date, maxNumber, timeCode, workingId, id } = req.body;
     if (!id && (!date || !maxNumber || !timeCode || !workingId)) {
       return res.status(401).json({
@@ -30,7 +30,7 @@ class StaffController {
   }
 
   // [Delete] /health-exam-schedule
-  async handleDeleteHealthExamSchedule(req, res, next) {
+  async handleDeleteHealthExamSchedule(req, res) {
     const { id } = req.body;
 
     try {
@@ -47,7 +47,7 @@ class StaffController {
   }
 
   // [GET] /health-exam-schedule
-  async handleGetHealthExamSchedule(req, res, next) {
+  async handleGetHealthExamSchedule(req, res) {
     const { limit, offset, staffId, date, workingId } = req.query;
     try {
       const data = await workServices.getHealthExamSchedule({
@@ -67,9 +67,34 @@ class StaffController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+  // // [GET] /health-exam-schedule-full-info
+  // async handleGetHealthExamScheduleFullInfor(req, res) {
+  //   const { staffId, date, healthFacilityId } = req.query;
+  //   if (!staffId || !date || !healthFacilityId) {
+  //     return res.status(400).json({
+  //       statusCode: 1,
+  //       msg: "Thiếu tham số truyền vào.",
+  //     });
+  //   }
+  //   try {
+  //     const data = await workServices.getHealthExamScheduleFullInfo({
+  //       staffId,
+  //       date,
+  //       healthFacilityId,
+  //     });
+  //     if (data.statusCode === 0) {
+  //       return res.status(200).json(data);
+  //     }
+  //     return res.status(400).json(data);
+  //   } catch (err) {
+  //     return res
+  //       .status(500)
+  //       .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+  //   }
+  // }
 
   // [GET] /working
-  async handleGetDoctorWorking(req, res, next) {
+  async handleGetDoctorWorking(req, res) {
     const {
       offset,
       limit,

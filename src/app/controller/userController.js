@@ -236,12 +236,13 @@ class UserController {
   async handleGetHealthRecord(req, res) {
     // Get user logined
     const userId = req.user.id;
-    const { litmit, offset } = req.query;
+    const { litmit, offset, healthRecordId } = req.query;
     try {
       const data = await userServices.getHealthRecord({
         userId,
         litmit,
         offset,
+        healthRecordId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

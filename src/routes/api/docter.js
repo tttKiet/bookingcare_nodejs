@@ -1,9 +1,5 @@
-import { adminController, staffController } from "../../app/controller";
-import { uploadAwsS3, verifyToken, verifyTokenAdmin } from "../../middleWares";
 import express from "express";
-import { staffServices } from "../../services";
-const multer = require("multer");
-const upload = multer();
+import { staffController } from "../../app/controller";
 
 // /doctor
 const router = express.Router();
@@ -14,6 +10,11 @@ router
   .get(staffController.handleGetHealthExamSchedule)
   .post(staffController.handleCreateOrUpdateHealthExamSchedule)
   .delete(staffController.handleDeleteHealthExamSchedule);
+
+// router.get(
+//   "/health-exam-schedule-full-info",
+//   staffController.handleGetHealthExamScheduleFullInfor
+// );
 
 router.get("/working", staffController.handleGetDoctorWorking);
 

@@ -29,6 +29,8 @@ router.get(
   adminController.getDoctorWithEmail
 );
 
+router.get("/staff/doctor-by-id", adminController.getDoctorById);
+
 // TypeHealthFacilities
 router.post(
   "/health-facilities/type",

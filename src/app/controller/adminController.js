@@ -647,6 +647,28 @@ class AdminController {
     }
   }
 
+  // [GET] /admin/staff/doctor
+  async getDoctorById(req, res) {
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({
+        statusCode: 1,
+        msg: "Id chưa được truyền vào.",
+      });
+    }
+    try {
+      const data = await staffServices.getDoctorById(id);
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
   // [GET] /admin/role
   async handleGetRole(req, res) {
     const { option } = req.query;
