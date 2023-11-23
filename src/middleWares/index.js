@@ -66,7 +66,7 @@ export async function verifyTokenManager(req, res, next) {
   verifyToken(req, res, () => {
     if (
       req?.user?.role?.id &&
-      ["admin", "manager"].includes(req.user.role?.keyType)
+      ["admin", "manager", "doctor"].includes(req.user.role?.keyType)
     ) {
       next();
     } else if (!req?.user?.role?.id) {

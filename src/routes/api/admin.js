@@ -135,4 +135,7 @@ router
 
 router.route("/code/time").get(adminController.handleGetTimeCode);
 
+// rank
+router.get("/rank", adminController.handleGetRank);
+
 export default router;

@@ -14,13 +14,25 @@ module.exports = {
         },
         {
           id: "0892100d-ff1c-4478-9e63-c07983c3f24e",
-          name: "Bệnh viện cá nhân",
+          name: "Phòng khám",
           createdAt: "2023-09-16T03:58:32.688Z",
           updatedAt: "2023-09-16T03:58:32.688Z",
         },
         {
           id: "555f7809-f220-4f96-910c-bf23788815b9",
           name: "Bệnh viện công",
+          createdAt: "2023-09-16T06:16:47.428Z",
+          updatedAt: "2023-09-16T06:16:47.428Z",
+        },
+        {
+          id: "525f7809-f820-4f96-910c-bf23788815b8",
+          name: "Phòng mạch",
+          createdAt: "2023-09-16T06:16:47.428Z",
+          updatedAt: "2023-09-16T06:16:47.428Z",
+        },
+        {
+          id: "525f7809-f820-4f96-910c-bf23788815b7",
+          name: "Tim chủng",
           createdAt: "2023-09-16T06:16:47.428Z",
           updatedAt: "2023-09-16T06:16:47.428Z",
         },

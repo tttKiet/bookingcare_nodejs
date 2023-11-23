@@ -18,6 +18,18 @@ module.exports = {
           createdAt: "2023-09-16T04:36:05.114Z",
           updatedAt: "2023-09-16T04:36:05.114Z",
         },
+        {
+          id: "480f5c52-abbd-4d28-9c9c-99c41feaaf2f",
+          name: "Tiến sỉ",
+          createdAt: "2023-09-16T04:36:05.114Z",
+          updatedAt: "2023-09-16T04:36:05.114Z",
+        },
+        {
+          id: "480f5c52-abbd-4d28-9c9c-99c41feaaf2d",
+          name: "Thạc sỉ",
+          createdAt: "2023-09-16T04:36:05.114Z",
+          updatedAt: "2023-09-16T04:36:05.114Z",
+        },
       ],
       {}
     );

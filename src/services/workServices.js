@@ -148,9 +148,10 @@ class WorkServices {
             isInsert.HealthFacility.name
           }* .
           Id: ${isInsert.id}
-          Time: ${moment(isInsert.startDate).format("l")} - ${moment(
-            isInsert.endDate
-          ).format("l")}`,
+          Time: ${moment(isInsert.startDate).format("l")} - ${
+            isInsert.endDate ? moment(isInsert.endDate).format("l") : "./"
+          }
+         `,
         };
       }
       const workDoc = await db.Working.create({
@@ -223,6 +224,7 @@ class WorkServices {
     limit = 10,
     doctorName,
     id,
+    doctorId,
     doctorEmail,
     healthFacilityName,
     healthFacilityId,
@@ -247,6 +249,8 @@ class WorkServices {
       (whereQueryHeal.name = {
         [Op.substring]: healthFacilityName,
       });
+    doctorId && (whereQueryDoctor.id = doctorId);
+
     if (type == "current") {
       whereQuery[Op.or] = [
         {
@@ -319,6 +323,48 @@ class WorkServices {
   }
 
   // Work Room
+  async getWorkRoomFromWorking({ workingId }) {
+    const docs = await db.WorkRoom.findOne({
+      raw: true,
+      include: [
+        {
+          model: db.ClinicRoom,
+          on: {
+            [Op.and]: [
+              {
+                roomNumber: {
+                  [Op.col]: "WorkRoom.ClinicRoomRoomNumber",
+                },
+                healthFacilityId: {
+                  [Op.col]: "WorkRoom.ClinicRoomHealthFacilityId",
+                },
+              },
+            ],
+          },
+          include: [
+            {
+              model: db.HealthFacility,
+            },
+          ],
+        },
+        {
+          model: db.Working,
+          where: {
+            id: workingId,
+          },
+          include: [
+            {
+              model: db.Staff,
+            },
+          ],
+        },
+      ],
+      nest: true,
+    });
+
+    return docs;
+  }
+
   async getWorkRoom({ offset = 0, limit = 10, healthFacilityId, roomNumber }) {
     const whereQueryWorkRoom = {};
 
@@ -345,6 +391,7 @@ class WorkServices {
       offset,
       limit,
       where: whereQueryWorkRoom,
+      order: [["applyDate", "desc"]],
       include: [
         {
           model: db.ClinicRoom,
@@ -462,6 +509,14 @@ class WorkServices {
         statusCode: 402,
         msg: `Bác sỉ đang được phân công ở phòng ${workRoomExistsOrtherRoom.ClinicRoomRoomNumber}.`,
       };
+
+    const optionFindWorkRoom = {};
+    if (id) {
+      optionFindWorkRoom.id = {
+        [Op.not]: id,
+      };
+    }
+    optionFindWorkRoom.workingId = workingId;
     const workRoomExists = await db.WorkRoom.findOne({
       where: {
         [Op.or]: [
@@ -470,6 +525,7 @@ class WorkServices {
             Sequelize.fn("DATE", Sequelize.literal(`'${datePassed}'`))
           ),
         ],
+        ...optionFindWorkRoom,
       },
       raw: true,
     });
@@ -660,6 +716,11 @@ class WorkServices {
     };
   }
 
+  filterUniqueValues(arr) {
+    return arr.filter((value, index, self) => {
+      return self.indexOf(value) === index;
+    });
+  }
   // Health Examination Schedule
   async getHealthExamSchedule({
     offset = 0,
@@ -668,6 +729,7 @@ class WorkServices {
     date,
     workingId,
     type = "all",
+    raw,
   }) {
     // const whereQueryDoctor = {};
     const whereQuery = {};
@@ -686,27 +748,35 @@ class WorkServices {
       limit,
       order: [["date", "desc"]],
       where: whereQuery,
-      include: [
-        {
-          model: db.Working,
-          attributes: {
-            exclude: ["createdAt", "updatedAt"],
-          },
-          where: whereQueryWorking,
-          include: [
+      include: !raw
+        ? [
             {
-              model: db.Staff,
-              include: [db.Specialist],
+              model: db.Code,
+              attributes: {},
+              as: "TimeCode",
             },
-            db.HealthFacility,
+          ]
+        : [
+            {
+              model: db.Working,
+              attributes: {
+                exclude: ["createdAt", "updatedAt"],
+              },
+              where: whereQueryWorking,
+              include: [
+                {
+                  model: db.Staff,
+                  include: [db.Specialist],
+                },
+                db.HealthFacility,
+              ],
+            },
+            {
+              model: db.Code,
+              attributes: {},
+              as: "TimeCode",
+            },
           ],
-        },
-        {
-          model: db.Code,
-          attributes: {},
-          as: "TimeCode",
-        },
-      ],
       nest: true,
     });
 
@@ -719,12 +789,16 @@ class WorkServices {
     });
 
     const docs = await Promise.all(promiseFields);
+    const results = {
+      count: documents.count,
+      rows: docs,
+    };
 
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
       data: {
-        ...docs,
+        ...results,
         limit: limit,
         offset: offset,
       },
@@ -738,6 +812,7 @@ class WorkServices {
     workingId,
     // id,
   }) {
+    // timecode = this.filterUniqueValues(timecode);
     const isWorking = await db.Working.findByPk(workingId, {
       raw: true,
     });
@@ -757,35 +832,29 @@ class WorkServices {
         statusCode: 8,
         msg: "Bác sỉ chưa được phân công vào phòng làm việc.",
       };
-    if (Array.isArray(timeCode)) {
-      const codes = await db.Code.findAll({
-        where: {
-          key: {
-            [Op.in]: timeCode,
-          },
+    const codes = await db.Code.findAll({
+      where: {
+        key: {
+          [Op.in]: timeCode,
         },
-        raw: true,
-      });
+      },
+      raw: true,
+    });
 
-      if (timeCode.length !== codes.length) {
-        return {
-          statusCode: 2,
-          msg: `Không tìm thấy mã thời gian nào đó.`,
-        };
-      }
-    } else {
-      // Validate
-      const [codeDoc] = await Promise.all([
-        db.Code.findByPk(timeCode, {
-          raw: true,
-        }),
-      ]);
-      if (!codeDoc) {
-        return {
-          statusCode: 1,
-          msg: `Không tìm thấy ${timeCode}.`,
-        };
-      }
+    console.log(
+      "\n\n----------------------------------------------------------------codes",
+      codes
+    );
+    console.log(
+      "\n\n----------------------------------------------------------------timeCode",
+      timeCode
+    );
+
+    if (timeCode.length !== codes.length) {
+      return {
+        statusCode: 2,
+        msg: `Không tìm thấy mã thời gian nào đó.`,
+      };
     }
 
     const isDateFuture = new Date(date) > new Date();
@@ -794,109 +863,157 @@ class WorkServices {
       return { statusCode: 2, msg: "Ngày cập nhật phải ở tương lai." };
     }
 
-    // Create a new schedule for date
-    const isUpdateDate = await db.HealthExaminationSchedule.findOne({
+    // const scheduleExists = db.HealthExaminationSchedulefindAll
+
+    //  Check if have schedule
+    const dateMoment = moment(date).format("L");
+    const scheduleExists = await db.HealthExaminationSchedule.findAll({
       where: {
-        date: moment(date).format("L"),
+        date: dateMoment,
+        workingId,
       },
       raw: true,
     });
-    if (isUpdateDate) {
-      // Update schedule for date
-      const isDeleted = await db.HealthExaminationSchedule.destroy({
-        force: true,
-        where: {
-          date: moment(date).format("L"),
-        },
+    if (scheduleExists) {
+      const timeCodeExists = scheduleExists.map((t) => {
+        return t.timeCode;
       });
-      if (!isDeleted) {
+      // schedule T1, T2
+      // time code T1, T4
+      // result T4
+
+      // filter same as doc
+      const sameAs = timeCode.filter((t) => {
+        return timeCodeExists.includes(t);
+      });
+
+      // filter doc need to delete
+      const docDelete = timeCodeExists.filter((t) => {
+        return !sameAs.includes(t);
+      });
+
+      // check booking
+      const bookingDoc = await db.Booking.findOne({
+        raw: true,
+        nest: true,
+        include: [
+          {
+            model: db.HealthExaminationSchedule,
+            where: {
+              timeCode: {
+                [Op.in]: docDelete,
+              },
+            },
+            include: [
+              {
+                model: db.Code,
+                as: "TimeCode",
+              },
+            ],
+          },
+        ],
+      });
+
+      console.log("\n\nbookingDoc------------------------", bookingDoc);
+
+      if (bookingDoc) {
         return {
-          statusCode: 6,
-          msg: "Cập nhật lịch thất bại. Xóa dữ liệu cũ bị lỗi.",
+          statusCode: 4,
+          msg: `Không thể xóa. Lịch ${bookingDoc.HealthExaminationSchedule.TimeCode.value} đã có người đặt.`,
         };
       }
-    }
-    if (Array.isArray(timeCode)) {
+
+      // filter doc need to create
+      const docCreate = timeCode.filter((t) => {
+        return !sameAs.includes(t);
+      });
+
+      console.log(
+        "\n----------------------------------------------------------------"
+      );
+
+      console.log("timcode: ", timeCode);
+      console.log("sameAs: ", sameAs);
+      console.log("timeCodeExists: ", timeCodeExists);
+      console.log("docDelete: ", docDelete);
+      console.log("docCreate: ", docCreate);
+
+      console.log(
+        "\n----------------------------------------------------------------"
+      );
+
+      // delete doc
+      if (docDelete.length > 0) {
+        console.log(
+          "----------------------------------------------------------------delete",
+          docDelete
+        );
+        const isDeleted = await db.HealthExaminationSchedule.destroy({
+          force: true,
+          where: {
+            date: dateMoment,
+            workingId,
+            timeCode: {
+              [Op.in]: docDelete,
+            },
+          },
+        });
+        console.log(
+          "----------------------------------------------------------------isDeleted",
+          isDeleted
+        );
+        if (isDeleted == 0)
+          return {
+            statusCode: 1,
+            msg: "Không tìm thấy tài nguyên này.",
+          };
+      }
+
+      // create doc
+      if (docCreate.length > 0) {
+        const data = docCreate.map((timeCode) => ({
+          date: moment(date).format("L"),
+          timeCode: timeCode,
+          workingId,
+          maxNumber,
+        }));
+        const scheduleDoc = await db.HealthExaminationSchedule.bulkCreate(data);
+        if (scheduleDoc) {
+          return {
+            statusCode: 0,
+            msg: `Cập nhật lịch thành công.`,
+            data: scheduleDoc,
+          };
+        } else {
+          return {
+            statusCode: 3,
+            msg: "Cập nhật thất bại. Đã có lỗi xảy ra.",
+          };
+        }
+      }
+      return {
+        statusCode: 0,
+        msg: "Dữ liệu chưa thay đổi.",
+      };
+    } else {
+      // If creating a new schedule
       const data = timeCode.map((timeCode) => ({
         date: moment(date).format("L"),
         timeCode: timeCode,
         workingId,
         maxNumber,
       }));
-
-      //  Check if have schedule
-      const scheduleExists = await db.HealthExaminationSchedule.findAll({
-        where: {
-          date: moment(date).format("L"),
-          timeCode: {
-            [Op.in]: timeCode,
-          },
-          workingId,
-        },
-        raw: true,
-      });
-
-      if (scheduleExists.length > 0) {
-        return {
-          statusCode: 4,
-          msg: `Lịch đã được tạo.* ${scheduleExists.reduce(
-            (init, sche) => init + " - " + sche.timeCode,
-            ""
-          )} *`,
-          data: scheduleExists,
-        };
-      }
-      // Create schedule
       const scheduleDoc = await db.HealthExaminationSchedule.bulkCreate(data);
       if (scheduleDoc) {
         return {
           statusCode: 0,
-          msg: `${
-            isUpdateDate ? "Cập nhật lịch thành công." : "Tạo lịch thành công."
-          }`,
+          msg: `Tạo lịch thành công.`,
           data: scheduleDoc,
         };
       } else {
         return {
           statusCode: 3,
-          msg: "Tạo lịch thất bại. Đã có lỗi xảy ra.",
-        };
-      }
-    } else {
-      const scheduleExists = await db.HealthExaminationSchedule.findOne({
-        where: {
-          date: moment(date).format("L"),
-          timeCode,
-          workingId,
-        },
-      });
-      if (scheduleExists)
-        return {
-          statusCode: 4,
-          msg: "Lịch này đã được tạo.",
-        };
-      const scheduleDoc = await db.HealthExaminationSchedule.create({
-        date: moment(date).format("L"),
-        maxNumber,
-        timeCode,
-        workingId,
-      });
-      if (scheduleDoc) {
-        return {
-          statusCode: 0,
-          msg: `${
-            isUpdateDate ? "Cập nhật lịch thành công." : "Tạo lịch thành công."
-          }`,
-          data: scheduleDoc,
-        };
-      } else {
-        return {
-          statusCode: 3,
-          msg: `${
-            isUpdateDate
-              ? "Cập nhậtlịch thất bại. Đã có lỗi xảy ra..."
-              : "Tạo lịch thất bại. Đã có lỗi xảy ra.."
-          }`,
+          msg: "Tạo thất bại. Đã có lỗi xảy ra.",
         };
       }
     }

@@ -1,7 +1,7 @@
-import { Op, where } from "sequelize";
-import db from "../app/models";
+import { Op } from "sequelize";
+import db, { Sequelize } from "../app/models";
 import bcrypt from "bcrypt";
-import userServices from "./userServices";
+import workServices from "./workServices";
 const saltRounds = 10;
 
 class StaffServices {
@@ -88,7 +88,7 @@ class StaffServices {
     }
   }
 
-  async deleteAcademicDegree({ id, name }) {
+  async deleteAcademicDegree({ id }) {
     const academicDegreeDoc = await db.AcademicDegree.destroy({
       where: {
         id,
@@ -467,13 +467,15 @@ class StaffServices {
     }
   }
 
-  async getCode({ offset = 0, limit = 10 }) {
+  async getCode({ offset = 0, limit = 16, name }) {
     const whereQuery = {};
+    name && (whereQuery.name = name);
     const codes = await db.Code.findAndCountAll({
       raw: true,
       offset,
       limit,
       where: whereQuery,
+      order: [["key", "asc"]],
     });
 
     return {
@@ -540,6 +542,7 @@ class StaffServices {
     doctorEmail,
     workingId,
     healthFacilityId,
+    doctorId,
   }) {
     const whereQueryDoctor = {};
     const whereQueryWorking = {};
@@ -551,6 +554,7 @@ class StaffServices {
       (whereQueryDoctor.email = {
         [Op.substring]: doctorEmail,
       });
+    doctorId && (whereQueryDoctor.id = doctorId);
 
     healthFacilityId && (whereQueryWorking.healthFacilityId = healthFacilityId);
 
@@ -568,6 +572,7 @@ class StaffServices {
           include: [db.AcademicDegree, db.Specialist],
         },
       ],
+      order: [["createdAt", "desc"]],
       nest: true,
     });
 
@@ -579,6 +584,165 @@ class StaffServices {
         limit: limit,
         offset: offset,
       },
+    };
+  }
+
+  // [GET] /check-up/health-record
+  async getRecordCheckUp({ date, staffId }) {
+    console.log("\nstaffId------------------------------------\n", {
+      staffId,
+    });
+    const workingDoctor = await this.getDoctorWorking({ doctorId: staffId });
+    const workingId = workingDoctor?.data?.rows?.[0].id;
+    console.log("workingId--------------------------------\n\n\n", {
+      workingId,
+    });
+    const results = {};
+    if (workingId) {
+      // Check where check up
+      const workRoom = await workServices.getWorkRoomFromWorking({ workingId });
+      if (workRoom) {
+        results.workRoom = workRoom;
+        const healthExamSchedules = await workServices.getHealthExamSchedule({
+          workingId,
+          date: date,
+          raw: true,
+        });
+        // asdsa
+        results.schedules = healthExamSchedules.data;
+        return {
+          statusCode: 0,
+          msg: "Lấy thành công.",
+          data: results,
+        };
+      } else {
+        return {
+          statusCode: 2,
+          msg: "Không tìm nơi khám bệnh",
+        };
+      }
+    } else {
+      return {
+        statusCode: 1,
+        msg: "Không tìm thấy bác sỉ",
+      };
+    }
+  }
+
+  // [PATCH] /check-up/health-record
+  async editStatusHealthRecord({ statusId, healthRecordId }) {
+    const codeDoc = await db.Code.findOne({
+      where: {
+        key: statusId,
+      },
+      raw: true,
+    });
+
+    if (!codeDoc) {
+      return {
+        statusCode: 2,
+        msg: `Không tin thấy trạng thái ${statusId}.`,
+      };
+    }
+    const doc = await db.HealthRecord.update(
+      {
+        statusCode: statusId,
+      },
+      {
+        where: {
+          id: healthRecordId,
+        },
+      }
+    );
+
+    if (doc[0] > 0) {
+      return {
+        statusCode: 0,
+        msg: "Cập nhật thành công.",
+      };
+    } else {
+      return {
+        statusCode: 1,
+        msg: "Cập nhật thất bại.",
+      };
+    }
+  }
+
+  // [GET]
+  async getChartRevenue({ staffId, year }) {
+    const docs = await db.HealthRecord.findAll({
+      raw: true,
+      where: {
+        statusCode: {
+          [Op.eq]: "S2",
+        },
+      },
+      include: [
+        {
+          model: db.Booking,
+          where: {
+            [Op.and]: Sequelize.where(
+              Sequelize.fn("date_part", "year", Sequelize.col("createdAt")),
+              year
+            ),
+          },
+          include: [
+            {
+              model: db.HealthExaminationSchedule,
+              include: [
+                {
+                  model: db.Working,
+                  where: {
+                    staffId,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      nest: true,
+    });
+
+    const healthRecord = docs.filter(
+      (doc) => doc.Booking?.HealthExaminationSchedule?.Working?.staffId !== null
+    );
+    const endData = healthRecord.map(async (record) => {
+      const workRoomDoc = await db.WorkRoom.findOne({
+        raw: true,
+        where: {
+          applyDate: {
+            [Op.lte]: record.Booking.createdAt,
+          },
+        },
+        include: [
+          {
+            model: db.Working,
+            where: {
+              id: record.Booking.HealthExaminationSchedule.Working.id,
+            },
+          },
+        ],
+        order: [["applyDate", "desc"]],
+        nest: true,
+      });
+      return {
+        workRoom: workRoomDoc,
+        ...record,
+      };
+    });
+    const data = await Promise.all(endData);
+    const array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    data.map((r) => {
+      const month = new Date(r.workRoom.Working.createdAt).getMonth();
+      array[month] += r.workRoom.checkUpPrice;
+    });
+
+    return {
+      statusCode: 0,
+      msg: "ok",
+      data: array,
     };
   }
 }

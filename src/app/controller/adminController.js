@@ -721,6 +721,7 @@ class AdminController {
       doctorName,
       id,
       doctorEmail,
+      doctorId,
       healthFacilityName,
       healthFacilityId,
       type,
@@ -731,6 +732,7 @@ class AdminController {
         doctorName,
         id,
         doctorEmail,
+        doctorId,
         healthFacilityName,
         healthFacilityId,
         type,
@@ -850,9 +852,9 @@ class AdminController {
 
   // [GET] /code
   async handleGetCode(req, res) {
-    const { limit, offset } = req.query;
+    const { limit, offset, name } = req.query;
     try {
-      const data = await staffServices.getCode({ limit, offset });
+      const data = await staffServices.getCode({ limit, offset, name });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }
@@ -911,6 +913,21 @@ class AdminController {
     }
     try {
       const data = await staffServices.createCode({ name, key, value });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // rank
+  async handleGetRank(req, res) {
+    try {
+      const data = await healthFacilitiesServices.getRank();
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }

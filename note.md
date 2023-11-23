@@ -10,6 +10,10 @@ npx sequelize-cli db:create
 npx sequelize-cli db:migrate
 npx sequelize-cli db:seed:all
 
+# Only file
+
+npx sequelize-cli db:seed --seed file.js
+
 # Undo seeder
 
 npx sequelize-cli db:seed:undo:all

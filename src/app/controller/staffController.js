@@ -10,11 +10,16 @@ class StaffController {
         msg: "Thiếu tham số truyền vào.",
       });
     }
+    let timeCodeArray = [];
+    if (!Array.isArray(timeCode)) timeCodeArray = [timeCode];
+    else {
+      timeCodeArray = [...timeCode];
+    }
     try {
       const data = await workServices.createOrUpdateHealthExamSchedule({
         date,
         maxNumber,
-        timeCode,
+        timeCode: timeCodeArray,
         workingId,
         id,
       });
@@ -56,6 +61,7 @@ class StaffController {
         staffId,
         date,
         workingId,
+        raw: true,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -67,31 +73,6 @@ class StaffController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
-  // // [GET] /health-exam-schedule-full-info
-  // async handleGetHealthExamScheduleFullInfor(req, res) {
-  //   const { staffId, date, healthFacilityId } = req.query;
-  //   if (!staffId || !date || !healthFacilityId) {
-  //     return res.status(400).json({
-  //       statusCode: 1,
-  //       msg: "Thiếu tham số truyền vào.",
-  //     });
-  //   }
-  //   try {
-  //     const data = await workServices.getHealthExamScheduleFullInfo({
-  //       staffId,
-  //       date,
-  //       healthFacilityId,
-  //     });
-  //     if (data.statusCode === 0) {
-  //       return res.status(200).json(data);
-  //     }
-  //     return res.status(400).json(data);
-  //   } catch (err) {
-  //     return res
-  //       .status(500)
-  //       .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
-  //   }
-  // }
 
   // [GET] /working
   async handleGetDoctorWorking(req, res) {
@@ -102,6 +83,7 @@ class StaffController {
       doctorEmail,
       workingId,
       healthFacilityId,
+      doctorId,
     } = req.query;
     try {
       const data = await staffServices.getDoctorWorking({
@@ -111,6 +93,84 @@ class StaffController {
         doctorEmail,
         workingId,
         healthFacilityId,
+        doctorId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /check-up/health-record
+  async handleGetRecordCheckUp(req, res) {
+    const { date, staffId } = req.query;
+    console.log("staffId{ ", {
+      staffId,
+    });
+    if (!date || !staffId) {
+      return res
+        .status(400)
+        .json({ msg: "Thiếu tham số truyền vào! Yêu cầu [staffId, date]" });
+    }
+    try {
+      const data = await staffServices.getRecordCheckUp({
+        date,
+        staffId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [PATCH] /check-up/health-record
+  async handleEditStatus(req, res) {
+    const { statusId, healthRecordId } = req.body;
+    if (!statusId && !healthRecordId) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào [statusId].",
+      });
+    }
+    try {
+      const data = await staffServices.editStatusHealthRecord({
+        statusId,
+        healthRecordId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /check-up/health-record
+  async handleChartRevenue(req, res) {
+    const { year, staffId } = req.query;
+
+    if (!year || !staffId) {
+      return res
+        .status(400)
+        .json({ msg: "Thiếu tham số truyền vào! Yêu cầu [staffId, year]" });
+    }
+    try {
+      const data = await staffServices.getChartRevenue({
+        year,
+        staffId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

@@ -193,6 +193,7 @@ class healthFacilitiesServices {
           attributes: ["name"],
         },
       ],
+      order: [["createdAt", "desc"]],
     });
 
     return {
@@ -263,6 +264,7 @@ class healthFacilitiesServices {
           where: whereType,
         },
       ],
+      order: [["createdAt", "desc"]],
     });
 
     return {
@@ -648,6 +650,102 @@ class healthFacilitiesServices {
     return {
       statusCode: 1,
       msg: "Xóa thất bại.",
+    };
+  }
+
+  // Get rank
+  async getRank() {
+    const healthFacilityDocs = await db.HealthFacility.findAll({
+      raw: true,
+    });
+
+    const resultPromise = healthFacilityDocs.map(async (h) => {
+      const healthFacilityId = h.id;
+
+      const docs = await db.HealthRecord.findAll({
+        raw: true,
+        where: {
+          statusCode: {
+            [Op.eq]: "S2",
+          },
+        },
+        include: [
+          {
+            model: db.Booking,
+            include: [
+              {
+                model: db.HealthExaminationSchedule,
+                include: [
+                  {
+                    model: db.Working,
+                    where: {
+                      healthFacilityId,
+                    },
+                    include: [
+                      {
+                        model: db.HealthFacility,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        nest: true,
+      });
+      const dataHealthRecord = docs.filter(
+        (d) => d.Booking?.HealthExaminationSchedule?.Working.id !== null
+      );
+
+      const endData = dataHealthRecord.map(async (record) => {
+        const workRoomDoc = await db.WorkRoom.findOne({
+          raw: true,
+          where: {
+            applyDate: {
+              [Op.lte]: record.Booking.createdAt,
+            },
+          },
+          include: [
+            {
+              model: db.Working,
+              where: {
+                id: record.Booking.HealthExaminationSchedule.Working.id,
+              },
+            },
+          ],
+          order: [["applyDate", "desc"]],
+          nest: true,
+        });
+        return {
+          workRoom: workRoomDoc,
+          ...record,
+        };
+      });
+      const data = await Promise.all(endData);
+
+      return {
+        ...h,
+        data,
+      };
+    });
+
+    const result = await Promise.all(resultPromise);
+
+    const resultData = result.map((h) => {
+      const total = h.data.reduce((init, value) => {
+        return value.workRoom.checkUpPrice + init;
+      }, 0);
+      return {
+        name: h.name,
+        total: total,
+      };
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lay thanh cong",
+      data: resultData,
     };
   }
 }

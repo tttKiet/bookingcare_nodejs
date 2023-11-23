@@ -236,10 +236,13 @@ class UserController {
   async handleGetHealthRecord(req, res) {
     // Get user logined
     const userId = req.user.id;
-    const { litmit, offset, healthRecordId } = req.query;
+    console.log(req.user);
+    const { litmit, offset, healthRecordId, timeCodeId } = req.query;
     try {
       const data = await userServices.getHealthRecord({
         userId,
+        permission: req.user.role.keyType,
+        timeCodeId,
         litmit,
         offset,
         healthRecordId,
