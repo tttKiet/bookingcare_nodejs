@@ -938,6 +938,49 @@ class AdminController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // chart
+  async handleGetChartRecord(req, res) {
+    const { year } = req.query;
+
+    if (!year) {
+      return res
+        .status(400)
+        .json({ msg: "Thiếu tham số truyền vào! Yêu cầu [year]" });
+    }
+    try {
+      const data = await staffServices.getChartRecord({ year });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  async handleGetChartAccount(req, res) {
+    const { year } = req.query;
+
+    if (!year) {
+      return res
+        .status(400)
+        .json({ msg: "Thiếu tham số truyền vào! Yêu cầu [year]" });
+    }
+    try {
+      const data = await staffServices.getChartAccount({ year });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
 }
 
 export default new AdminController();

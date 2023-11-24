@@ -527,6 +527,10 @@ class UserServices {
             },
           ],
         },
+        {
+          model: db.Code,
+          as: "status",
+        },
       ],
       nest: true,
     });

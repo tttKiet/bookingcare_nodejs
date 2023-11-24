@@ -135,12 +135,19 @@ class StaffController {
 
   // [PATCH] /check-up/health-record
   async handleEditStatus(req, res) {
+    const user = req?.user;
+    console.log(user);
     const { statusId, healthRecordId } = req.body;
     if (!statusId && !healthRecordId) {
       return res.status(401).json({
         statusCode: 1,
         msg: "Thiếu tham số truyền vào [statusId].",
       });
+    }
+    if (user?.role.keyType === "user") {
+      if (statusId != "S4") {
+        return res.status(403).json({ msg: "Bạn không có quyền này!" });
+      }
     }
     try {
       const data = await staffServices.editStatusHealthRecord({

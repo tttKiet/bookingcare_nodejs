@@ -138,4 +138,8 @@ router.route("/code/time").get(adminController.handleGetTimeCode);
 // rank
 router.get("/rank", adminController.handleGetRank);
 
+// chart
+router.get("/chart/record", adminController.handleGetChartRecord);
+router.get("/chart/account", adminController.handleGetChartAccount);
+
 export default router;

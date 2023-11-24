@@ -674,7 +674,7 @@ class StaffServices {
       raw: true,
       where: {
         statusCode: {
-          [Op.eq]: "S2",
+          [Op.eq]: "S3",
         },
       },
       include: [
@@ -743,6 +743,80 @@ class StaffServices {
       statusCode: 0,
       msg: "ok",
       data: array,
+    };
+  }
+
+  async getChartAccount({ year }) {
+    const docs = await db.User.findAll({
+      raw: true,
+      where: {
+        [Op.and]: Sequelize.where(
+          Sequelize.fn("date_part", "year", Sequelize.col("createdAt")),
+          year
+        ),
+      },
+    });
+
+    const array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    docs.map((r) => {
+      const month = new Date(r.createdAt).getMonth();
+      array[month] += 1;
+    });
+
+    return {
+      statusCode: 0,
+      msg: "ok",
+      data: array,
+    };
+  }
+
+  async getChartRecord({ year }) {
+    const docs = await db.HealthRecord.findAll({
+      raw: true,
+      include: [
+        {
+          model: db.Booking,
+          where: {
+            [Op.and]: Sequelize.where(
+              Sequelize.fn("date_part", "year", Sequelize.col("createdAt")),
+              year
+            ),
+          },
+          include: [
+            {
+              model: db.HealthExaminationSchedule,
+            },
+          ],
+        },
+      ],
+      nest: true,
+    });
+    // return {
+    //   statusCode: 0,
+    //   data: docs,
+    // };
+    const array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const arrayCancel = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    docs.map((r) => {
+      const month = new Date(
+        r.Booking.HealthExaminationSchedule.date
+      ).getMonth();
+      if (r.statusCode == "S3") {
+        array[month] += 1;
+      } else {
+        arrayCancel[month] += 1;
+      }
+    });
+
+    return {
+      statusCode: 0,
+      msg: "ok",
+      data: {
+        success: array,
+        fail: arrayCancel,
+      },
     };
   }
 }

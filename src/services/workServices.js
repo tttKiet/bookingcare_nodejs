@@ -1020,6 +1020,19 @@ class WorkServices {
   }
 
   async deleteHealthExamSchedule(id) {
+    const isHaveDoc = await db.Booking.findOne({
+      where: {
+        healthExaminationScheduleId: id,
+      },
+      raw: true,
+    });
+
+    if (isHaveDoc) {
+      return {
+        statusCode: 2,
+        msg: "Lịch này đã có người đặt.",
+      };
+    }
     const isDeleted = await db.HealthExaminationSchedule.destroy({
       force: true,
       where: {

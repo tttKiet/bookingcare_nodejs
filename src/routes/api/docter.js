@@ -1,6 +1,11 @@
 import express from "express";
 import { staffController } from "../../app/controller";
-import { verifyTokenAdmin, verifyTokenManager } from "../../middleWares";
+import {
+  verifyTokenAdmin,
+  verifyTokenManager,
+  verifyToken,
+  requireLogin,
+} from "../../middleWares";
 
 // /doctor
 const router = express.Router();
@@ -27,7 +32,7 @@ router.get("/working", staffController.handleGetDoctorWorking);
 router
   .route("/check-up/health-record")
   .get(staffController.handleGetRecordCheckUp)
-  .patch(verifyTokenManager, staffController.handleEditStatus);
+  .patch(verifyToken, requireLogin, staffController.handleEditStatus);
 
 router.get("/chart/revenue", staffController.handleChartRevenue);
 
