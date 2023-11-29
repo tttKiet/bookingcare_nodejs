@@ -841,15 +841,6 @@ class WorkServices {
       raw: true,
     });
 
-    console.log(
-      "\n\n----------------------------------------------------------------codes",
-      codes
-    );
-    console.log(
-      "\n\n----------------------------------------------------------------timeCode",
-      timeCode
-    );
-
     if (timeCode.length !== codes.length) {
       return {
         statusCode: 2,
@@ -892,22 +883,35 @@ class WorkServices {
         return !sameAs.includes(t);
       });
 
+      console.log("---docDelete: ", docDelete);
+      const dateSelect = moment(date).format("L");
       // check booking
-      const bookingDoc = await db.Booking.findOne({
+      const bookingDoc = await db.HealthRecord.findOne({
         raw: true,
         nest: true,
+        where: {
+          statusCode: {
+            [Op.ne]: "S4",
+          },
+        },
         include: [
           {
-            model: db.HealthExaminationSchedule,
-            where: {
-              timeCode: {
-                [Op.in]: docDelete,
-              },
-            },
+            model: db.Booking,
             include: [
               {
-                model: db.Code,
-                as: "TimeCode",
+                model: db.HealthExaminationSchedule,
+                where: {
+                  date: dateSelect,
+                  timeCode: {
+                    [Op.in]: docDelete,
+                  },
+                },
+                include: [
+                  {
+                    model: db.Code,
+                    as: "TimeCode",
+                  },
+                ],
               },
             ],
           },
@@ -916,10 +920,10 @@ class WorkServices {
 
       console.log("\n\nbookingDoc------------------------", bookingDoc);
 
-      if (bookingDoc) {
+      if (bookingDoc?.Booking?.id) {
         return {
           statusCode: 4,
-          msg: `Không thể xóa. Lịch ${bookingDoc.HealthExaminationSchedule.TimeCode.value} đã có người đặt.`,
+          msg: `Không thể xóa. Lịch ${bookingDoc.Booking.HealthExaminationSchedule.TimeCode.value} đã có người đặt.`,
         };
       }
 

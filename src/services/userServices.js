@@ -378,11 +378,28 @@ class UserServices {
 
   // Booking
   async countBooking(healthExaminationScheduleId) {
-    return await db.Booking.count({
+    const count = await db.HealthRecord.findAll({
+      raw: true,
       where: {
-        healthExaminationScheduleId: healthExaminationScheduleId,
+        statusCode: {
+          [Op.ne]: "S4",
+        },
       },
+      include: [
+        {
+          model: db.Booking,
+          where: {
+            healthExaminationScheduleId: healthExaminationScheduleId,
+          },
+        },
+      ],
     });
+    console.log(
+      "\n------------------------------------------------\ncount",
+      count
+    );
+
+    return count.length;
   }
 
   async isBooking(healthExaminationScheduleId) {
@@ -505,7 +522,7 @@ class UserServices {
     } else {
       return {
         statusCode: 2,
-        msg: "Đã có người vừa đặt lịch này, vui lòng đăng ký lịch khác!",
+        msg: "Đã có người vừa đặt lịch này, lịch đã đủ người khám. Vui lòng đăng ký lịch khác!",
       };
     }
   }
