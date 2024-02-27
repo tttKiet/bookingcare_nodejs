@@ -142,4 +142,11 @@ router.get("/rank", adminController.handleGetRank);
 router.get("/chart/record", adminController.handleGetChartRecord);
 router.get("/chart/account", adminController.handleGetChartAccount);
 
+// Cedicine
+router
+  .route("/cedicine")
+  .post(adminController.handleCreateOrEditCedicine)
+  .get(adminController.handleGetCedicine)
+  .delete(adminController.handleDeleteCedicine);
+
 export default router;

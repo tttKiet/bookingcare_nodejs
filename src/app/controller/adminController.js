@@ -1,4 +1,5 @@
 import {
+  adminServices,
   authServices,
   healthFacilitiesServices,
   workServices,
@@ -975,6 +976,57 @@ class AdminController {
         return res.status(200).json(data);
       }
       return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // Cedicine
+  async handleCreateOrEditCedicine(req, res) {
+    const { name, price, id } = req.body;
+    if (!id && (!name || !price)) {
+      return res
+        .status(400)
+        .json({ msg: "Tham số cần thiết chưa được truyền vào." });
+    }
+
+    try {
+      const response = await adminServices.createOrUpdateCedicine({
+        name,
+        price,
+        id,
+      });
+      return res.status(response.statusCode).json(response);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  async handleGetCedicine(req, res) {
+    const { limit, offset, name } = req.query;
+    try {
+      const data = await adminServices.getCedicine({ limit, offset, name });
+
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  async handleDeleteCedicine(req, res) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ msg: "Vui lòng điền Id thuốc cần xóa!" });
+    }
+    try {
+      const data = await adminServices.deleteCedicine({ id });
+
+      return res.status(data.statusCode).json(data);
     } catch (err) {
       return res
         .status(500)
