@@ -18,6 +18,10 @@ module.exports = {
           id: "f1e9f129-da8d-4db0-93ee-46bb422fdebd",
           keyType: "doctor",
         },
+        {
+          id: "fad3735b-c6b6-4e52-8e35-d965291eba93",
+          keyType: "hospital_manager",
+        },
       ],
       {}
     );

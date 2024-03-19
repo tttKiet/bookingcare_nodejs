@@ -10,6 +10,10 @@ import {
 // /doctor
 const router = express.Router();
 
+router
+  .route("/health-exam-schedule/doctor")
+  .get(staffController.getHealthExamScheduleForDoctor);
+
 // Health Examination Schedule
 router
   .route("/health-exam-schedule")

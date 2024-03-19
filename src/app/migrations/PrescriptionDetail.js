@@ -9,12 +9,19 @@ module.exports = {
         defaultValue: Sequelize.UUIDV4,
         type: Sequelize.UUID,
       },
-      cedicineId: {
+      hospitalServiceId: {
+        allowNull: false,
+        type: Sequelize.UUID,
+      },
+      healthRecordId: {
         allowNull: false,
         type: Sequelize.UUID,
       },
       quantity: {
         type: Sequelize.INTEGER,
+      },
+      description: {
+        type: Sequelize.STRING,
       },
       createdAt: {
         allowNull: false,

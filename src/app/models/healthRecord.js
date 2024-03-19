@@ -18,6 +18,18 @@ module.exports = (sequelize, DataTypes) => {
       HealthRecord.belongsTo(models.Booking, {
         foreignKey: "bookingId",
       });
+
+      HealthRecord.belongsTo(models.Patient, {
+        foreignKey: "patientId",
+      });
+
+      HealthRecord.hasMany(models.PrescriptionDetail, {
+        foreignKey: "healthRecordId",
+      });
+
+      HealthRecord.hasMany(models.ServiceDetail, {
+        foreignKey: "healthRecordId",
+      });
     }
   }
   HealthRecord.init(

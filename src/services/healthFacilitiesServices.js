@@ -748,6 +748,211 @@ class healthFacilitiesServices {
       data: resultData,
     };
   }
+
+  // Create | Update Admin Manager Of Health Facility
+  async createAdminHealthFacility({
+    staffId,
+    healthFacilityId,
+    id,
+    isAcctive,
+  }) {
+    // create
+    if (!id) {
+      const [healthFacilityDoc, staffDoc] = await Promise.all([
+        db.HealthFacility.findByPk(healthFacilityId, { raw: true }),
+        db.Staff.findByPk(staffId),
+      ]);
+
+      if (!healthFacilityDoc || !staffDoc) {
+        return {
+          statusCode: 400,
+          msg: "Không tìm thấy Cơ cơ sở y tế hoặc nhân viên này.",
+        };
+      }
+      const docExist = await db.HospitalManager.findOne({
+        where: { staffId },
+      });
+      if (docExist) {
+        return {
+          statusCode: 400,
+          msg: `Người này đã được thêm vào danh sách quản lý cho ${healthFacilityDoc.name}.`,
+        };
+      }
+      const doc = await db.HospitalManager.create({
+        staffId,
+        healthFacilityId,
+      });
+
+      if (doc) {
+        return {
+          statusCode: 200,
+          msg: "Thêm quản lý cơ sở y tế thành công.",
+        };
+      }
+
+      return {
+        statusCode: 500,
+        msg: "Thêm quản lý cơ sở y tế thất bại, vui lòng thử lại.",
+      };
+    } else {
+      // update
+      const workDoc = await db.HospitalManager.update(
+        {
+          staffId,
+          isAcctive,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+      if (workDoc[0] > 0) {
+        return {
+          statusCode: 200,
+          msg: "Cập nhật thành công.",
+        };
+      } else {
+        return {
+          statusCode: 400,
+          msg: "Cập nhật thất bại. Không tìm thấy dữ liệu này.",
+        };
+      }
+    }
+  }
+
+  async getAdminHealthFacility({
+    offset = 0,
+    limit = 3,
+    healthFacilityName,
+    healthFacilityEmail,
+  }) {
+    const whereQuery = {};
+    healthFacilityName &&
+      (whereQuery.name = {
+        [Op.substring]: healthFacilityName,
+      });
+    healthFacilityEmail &&
+      (whereQuery.email = {
+        [Op.substring]: healthFacilityEmail,
+      });
+    const healthFacilitieDocs = await db.HealthFacility.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQuery,
+      order: [["name", "asc"]],
+    });
+
+    const promises = healthFacilitieDocs.rows.map(async (h) => {
+      const d = await db.HospitalManager.findAll({
+        where: {
+          healthFacilityId: h.id,
+        },
+        raw: true,
+        nest: true,
+        include: [
+          {
+            model: db.Staff,
+          },
+        ],
+      });
+      return {
+        healthFacility: h,
+        manager: d,
+        managerCount: d.length,
+      };
+    });
+
+    const docs = await Promise.all(promises);
+
+    return {
+      statusCode: 200,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        count: healthFacilitieDocs.count,
+        rows: docs,
+        offset,
+        limit,
+      },
+    };
+  }
+
+  async deleteAdminHealthFacility({ id }) {
+    const docs = await db.HospitalManager.destroy({
+      where: {
+        id,
+      },
+    });
+    if (docs > 0) {
+      return {
+        statusCode: 200,
+        msg: "Xóa thành công.",
+        data: docs,
+      };
+    }
+    return {
+      statusCode: 400,
+      msg: "Sắp xếp này chưa được xóa hay không tồn tại.",
+    };
+  }
+
+  async getService({
+    offset = 0,
+    limit = 3,
+    healthFacilityName,
+    healthFacilityEmail,
+  }) {
+    const whereQuery = {};
+    healthFacilityName &&
+      (whereQuery.name = {
+        [Op.substring]: healthFacilityName,
+      });
+    healthFacilityEmail &&
+      (whereQuery.email = {
+        [Op.substring]: healthFacilityEmail,
+      });
+    const healthFacilitieDocs = await db.HealthFacility.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQuery,
+      order: [["name", "asc"]],
+    });
+
+    const promises = healthFacilitieDocs.rows.map(async (h) => {
+      const d = await db.HospitalService.findAll({
+        where: {
+          healthFacilityId: h.id,
+        },
+        raw: true,
+        nest: true,
+        include: [
+          {
+            model: db.ExaminationService,
+          },
+        ],
+      });
+      return {
+        healthFacility: h,
+        service: d,
+        serviceCount: d.length,
+      };
+    });
+
+    const docs = await Promise.all(promises);
+
+    return {
+      statusCode: 200,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        count: healthFacilitieDocs.count,
+        rows: docs,
+        offset,
+        limit,
+      },
+    };
+  }
 }
 
 export default new healthFacilitiesServices();

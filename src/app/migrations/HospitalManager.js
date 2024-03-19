@@ -2,36 +2,24 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Bookings", {
+    await queryInterface.createTable("HospitalManagers", {
       id: {
         allowNull: false,
         primaryKey: true,
         defaultValue: Sequelize.UUIDV4,
         type: Sequelize.UUID,
       },
-      descriptionDisease: {
-        allowNull: false,
-        type: Sequelize.STRING,
-      },
-      healthExaminationScheduleId: {
+      staffId: {
         allowNull: false,
         type: Sequelize.UUID,
       },
-      patientProfileId: {
+      healthFacilityId: {
         allowNull: false,
         type: Sequelize.UUID,
       },
-      doctorPrice: {
-        allowNull: false,
-        type: Sequelize.FLOAT,
-      },
-      paymentStatus: {
-        allowNull: false,
+      isAcctive: {
+        defaultValue: true,
         type: Sequelize.BOOLEAN,
-      },
-      paymentType: {
-        allowNull: false,
-        type: Sequelize.STRING,
       },
       createdAt: {
         allowNull: false,
@@ -43,7 +31,8 @@ module.exports = {
       },
     });
   },
+
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Bookings");
+    await queryInterface.dropTable("HospitalManagers");
   },
 };

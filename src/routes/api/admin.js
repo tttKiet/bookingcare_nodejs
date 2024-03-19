@@ -149,4 +149,21 @@ router
   .get(adminController.handleGetCedicine)
   .delete(adminController.handleDeleteCedicine);
 
+// Manager admin Health Facility
+router
+  .route("/manager-admin-health-facility")
+  .post(adminController.handleCreateOrEditManagerAdminHealth)
+  .get(adminController.handleGetManagerAdminHealth)
+  .delete(adminController.handleDeleteManagerAdminHealth);
+
+// Examination Services
+router
+  .route("/examination-service")
+  .get(adminController.handleGetExaminationServices)
+  .post(adminController.handleCreateOrEditExaminationServices)
+  .delete(adminController.handleDeleteExaminationServices);
+
+// Hospital Service
+router.route("/hospital-service").get(adminController.handleGetHospitalService);
+
 export default router;

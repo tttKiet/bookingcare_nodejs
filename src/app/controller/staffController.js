@@ -74,6 +74,29 @@ class StaffController {
     }
   }
 
+  // [GET] /health-exam-schedule
+  async getHealthExamScheduleForDoctor(req, res) {
+    const { limit, offset, staffId, date, workingId } = req.query;
+    try {
+      const data = await workServices.getHealthExamScheduleForDoctor({
+        limit,
+        offset,
+        staffId,
+        date,
+        workingId,
+        raw: true,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
   // [GET] /working
   async handleGetDoctorWorking(req, res) {
     const {

@@ -378,26 +378,11 @@ class UserServices {
 
   // Booking
   async countBooking(healthExaminationScheduleId) {
-    const count = await db.HealthRecord.findAll({
-      raw: true,
+    const count = await db.Booking.findAll({
       where: {
-        statusCode: {
-          [Op.ne]: "S4",
-        },
+        healthExaminationScheduleId: healthExaminationScheduleId,
       },
-      include: [
-        {
-          model: db.Booking,
-          where: {
-            healthExaminationScheduleId: healthExaminationScheduleId,
-          },
-        },
-      ],
     });
-    console.log(
-      "\n------------------------------------------------\ncount",
-      count
-    );
 
     return count.length;
   }

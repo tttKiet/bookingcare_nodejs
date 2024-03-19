@@ -21,6 +21,14 @@ module.exports = (sequelize, DataTypes) => {
       HealthFacility.hasMany(models.ClinicRoom, {
         foreignKey: "healthFacilityId",
       });
+
+      HealthFacility.hasMany(models.HospitalManager, {
+        foreignKey: "healthFacilityId",
+      });
+
+      HealthFacility.hasMany(models.HospitalService, {
+        foreignKey: "healthFacilityId",
+      });
     }
   }
   HealthFacility.init(

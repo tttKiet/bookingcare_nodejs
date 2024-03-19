@@ -2,48 +2,57 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Bookings", {
+    await queryInterface.createTable("Patient", {
       id: {
         allowNull: false,
         primaryKey: true,
         defaultValue: Sequelize.UUIDV4,
         type: Sequelize.UUID,
       },
-      descriptionDisease: {
+      fullName: {
         allowNull: false,
         type: Sequelize.STRING,
       },
-      healthExaminationScheduleId: {
-        allowNull: false,
-        type: Sequelize.UUID,
-      },
-      patientProfileId: {
-        allowNull: false,
-        type: Sequelize.UUID,
-      },
-      doctorPrice: {
-        allowNull: false,
-        type: Sequelize.FLOAT,
-      },
-      paymentStatus: {
-        allowNull: false,
-        type: Sequelize.BOOLEAN,
-      },
-      paymentType: {
+      phone: {
         allowNull: false,
         type: Sequelize.STRING,
       },
-      createdAt: {
+      profession: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      email: {
+        allowNull: true,
+        type: Sequelize.STRING,
+      },
+      birthDay: {
         allowNull: false,
         type: Sequelize.DATE,
       },
-      updatedAt: {
+      gender: {
         allowNull: false,
-        type: Sequelize.DATE,
+        type: Sequelize.STRING,
+      },
+      cccd: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      nation: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      addressCode: {
+        allowNull: false,
+        type: Sequelize.ARRAY(Sequelize.STRING),
+      },
+      healthFacilityId: {
+        allowNull: false,
+        type: Sequelize.UUID,
       },
     });
   },
+
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Bookings");
+    await queryInterface.dropTable("PatientProfiles");
   },
 };

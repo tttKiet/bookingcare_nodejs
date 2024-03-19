@@ -42,6 +42,18 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         type: DataTypes.UUID,
       },
+      doctorPrice: {
+        allowNull: false,
+        type: DataTypes.REAL,
+      },
+      paymentStatus: {
+        allowNull: false,
+        type: DataTypes.BOOLEAN,
+      },
+      paymentType: {
+        allowNull: false,
+        type: DataTypes.STRING,
+      },
     },
     {
       sequelize,

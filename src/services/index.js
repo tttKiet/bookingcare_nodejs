@@ -4,3 +4,4 @@ export { default as healthFacilitiesServices } from "./healthFacilitiesServices"
 export { default as staffServices } from "./staffServices";
 export { default as workServices } from "./workServices";
 export { default as adminServices } from "./adminService";
+export { default as managerServices } from "./managerServices";

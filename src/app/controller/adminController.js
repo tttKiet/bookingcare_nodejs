@@ -563,10 +563,6 @@ class AdminController {
         !phone ||
         !address ||
         !gender ||
-        !academicDegreeId ||
-        !specialistId ||
-        !experience ||
-        !certificate ||
         !roleId)
     ) {
       return res.status(401).json({
@@ -603,13 +599,14 @@ class AdminController {
 
   // [GET] /admin/staff
   async handleGetStaff(req, res) {
-    const { limit, offset, email, fullName } = req.query;
+    const { limit, offset, email, fullName, type } = req.query;
     try {
       const data = await staffServices.getStaff({
         limit,
         offset,
         email,
         fullName,
+        type,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -986,10 +983,12 @@ class AdminController {
   // Cedicine
   async handleCreateOrEditCedicine(req, res) {
     const { name, price, id } = req.body;
-    if (!id && (!name || !price)) {
+    if (!id && !name) {
       return res
         .status(400)
         .json({ msg: "Tham số cần thiết chưa được truyền vào." });
+    } else if (price === 0) {
+      return res.status(400).json({ msg: "Vui lòng điền đơn giá > 0 vnđ." });
     }
 
     try {
@@ -1025,6 +1024,140 @@ class AdminController {
     }
     try {
       const data = await adminServices.deleteCedicine({ id });
+
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  // [POST] /admin/manager-admin-health-facility
+  async handleCreateOrEditManagerAdminHealth(req, res) {
+    const { staffId, healthFacilityId, id, isAcctive } = req.body;
+    if (!id && (!staffId || !healthFacilityId)) {
+      return res.status(401).json({
+        statusCode: 400,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+    try {
+      const data = await healthFacilitiesServices.createAdminHealthFacility({
+        staffId,
+        healthFacilityId,
+        id,
+        isAcctive,
+      });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  async handleGetManagerAdminHealth(req, res) {
+    const { limit, offset, healthFacilityName, healthFacilityEmail } =
+      req.query;
+    try {
+      const data = await healthFacilitiesServices.getAdminHealthFacility({
+        limit,
+        offset,
+        healthFacilityName,
+        healthFacilityEmail,
+      });
+
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  async handleDeleteManagerAdminHealth(req, res) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ msg: "Vui lòng điền Id sắp xếp cần xóa!" });
+    }
+    try {
+      const data = await healthFacilitiesServices.deleteAdminHealthFacility({
+        id,
+      });
+
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // Examination Services
+  async handleCreateOrEditExaminationServices(req, res) {
+    const { id, name, description } = req.body;
+    if (!id && (!name || !description)) {
+      return res.status(401).json({
+        statusCode: 400,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+    try {
+      const data = await adminServices.createOrUpdateExaminationService({
+        id,
+        name,
+        description,
+      });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  async handleGetExaminationServices(req, res) {
+    const { limit, offset, name } = req.query;
+    try {
+      const data = await adminServices.getExaminationService({
+        limit,
+        offset,
+        name,
+      });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  async handleDeleteExaminationServices(req, res) {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ msg: "Vui lòng điền Id sắp xếp cần xóa!" });
+    }
+    try {
+      const data = await adminServices.deleteExaminationService({
+        id,
+      });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // Hospital Service
+  async handleGetHospitalService(req, res) {
+    const { limit, offset, healthFacilityName, healthFacilityEmail } =
+      req.query;
+    try {
+      const data = await healthFacilitiesServices.getService({
+        limit,
+        offset,
+        healthFacilityName,
+        healthFacilityEmail,
+      });
 
       return res.status(data.statusCode).json(data);
     } catch (err) {

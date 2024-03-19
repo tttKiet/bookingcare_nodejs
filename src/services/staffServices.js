@@ -197,7 +197,7 @@ class StaffServices {
   }
 
   // Staff
-  async getStaff({ offset = 0, limit = 10, email, fullName }) {
+  async getStaff({ offset = 0, limit = 10, email, fullName, type = "doctor" }) {
     const whereQuery = {};
     email &&
       (whereQuery.email = {
@@ -220,7 +220,14 @@ class StaffServices {
           model: db.Role,
           where: {
             keyType: {
-              [Op.ne]: "admin",
+              [Op.and]: [
+                {
+                  [Op.ne]: "admin",
+                },
+                {
+                  [Op.eq]: type || "doctor",
+                },
+              ],
             },
           },
         },
@@ -265,7 +272,9 @@ class StaffServices {
     roleId,
   }) {
     // Check role
-    const role = await db.Role.findByPk(roleId);
+    const role = await db.Role.findByPk(roleId, {
+      raw: true,
+    });
     if (!role) {
       return {
         statusCode: 1,
@@ -273,17 +282,28 @@ class StaffServices {
       };
     }
 
-    // Check academicDegreeId and specialistId
-    const [academicDegreeDoc, specialistDoc] = await Promise.all([
-      db.AcademicDegree.findByPk(academicDegreeId),
-      db.Specialist.findByPk(specialistId),
-    ]);
+    if (role.keyType !== "hospital_manager") {
+      if (!academicDegreeId || !specialistId || !experience || !certificate) {
+        return {
+          statusCode: 400,
+          msg: "Tham tạo bác sỉ chưa đủ.",
+        };
+      }
+    }
 
-    if (!academicDegreeDoc || !specialistDoc) {
-      return {
-        statusCode: 3,
-        msg: "Dữ liệu chuyên khoa hoặc học vị không tồn tại.",
-      };
+    // Check academicDegreeId and specialistId
+    if (role.keyType !== "hospital_manager") {
+      const [academicDegreeDoc, specialistDoc] = await Promise.all([
+        db.AcademicDegree.findByPk(academicDegreeId),
+        db.Specialist.findByPk(specialistId),
+      ]);
+
+      if (!academicDegreeDoc || !specialistDoc) {
+        return {
+          statusCode: 3,
+          msg: "Dữ liệu chuyên khoa hoặc học vị không tồn tại.",
+        };
+      }
     }
 
     // Create a new Doctor

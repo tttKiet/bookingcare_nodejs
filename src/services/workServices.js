@@ -1,4 +1,4 @@
-import { Op, Sequelize } from "sequelize";
+import { Op, Sequelize, where } from "sequelize";
 import db from "../app/models";
 
 import moment from "moment";
@@ -724,6 +724,125 @@ class WorkServices {
   // Health Examination Schedule
   async getHealthExamSchedule({
     offset = 0,
+    limit = 5,
+    staffId,
+    date,
+    workingId,
+    type = "all",
+    raw,
+  }) {
+    const whereQueryDoctor = {};
+    const whereQuery = {};
+    const whereQueryWorking = {};
+
+    staffId && (whereQueryWorking.staffId = staffId);
+    workingId && (whereQueryWorking.id = workingId);
+    date && (whereQuery.date = moment(date).format("L"));
+    // check date distinct
+    const dateDistincts = await db.HealthExaminationSchedule.findAndCountAll({
+      attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
+      offset,
+      limit,
+      where: whereQuery,
+      order: [["date", "asc"]],
+    });
+
+    const countFuture = await db.HealthExaminationSchedule.findAll({
+      attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
+      where: {
+        date: {
+          [Op.gt]: moment(new Date()).format("L"),
+        },
+      },
+    });
+
+    // const wokingIdDistinctsss = await db.HealthExaminationSchedule.findAll({});
+    // return {
+    //   statusCode: 200,
+    //   data: wokingIdDistinctsss,
+    // };
+    if (type === "current") {
+      whereQuery.date = {
+        [Op.gt]: moment(new Date()).format("L"),
+      };
+    }
+
+    // map every date
+    const ds = dateDistincts.rows.map(async (d) => {
+      // check id staff distinct
+      const wokingIdDistincts = await db.HealthExaminationSchedule.findAll({
+        attributes: [
+          [Sequelize.fn("DISTINCT", Sequelize.col("workingId")), "workingId"],
+        ],
+        where: {
+          date: d.date,
+        },
+        raw: true,
+      });
+
+      // map
+      const resultsPromises = wokingIdDistincts.map(async (workingId) => {
+        const data = await db.HealthExaminationSchedule.findAll({
+          where: {
+            date: d.date,
+            workingId: workingId.workingId,
+          },
+          raw: true,
+          include: [
+            {
+              model: db.Code,
+              attributes: {},
+              as: "TimeCode",
+            },
+          ],
+          nest: true,
+        });
+
+        const staff = await db.Working.findOne({
+          where: { id: workingId.workingId },
+          include: [
+            db.HealthFacility,
+            {
+              model: db.Staff,
+              include: [db.AcademicDegree, db.Specialist],
+            },
+          ],
+        });
+        return {
+          working: staff,
+          schedules: data,
+        };
+      });
+
+      const results = await Promise.all(resultsPromises);
+
+      return {
+        date: d.date,
+        data: results,
+      };
+    });
+
+    const docs = await Promise.all(ds);
+    const results = {
+      count: ds.count,
+      rows: docs,
+    };
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...results,
+        limit: limit,
+        offset: offset,
+        count: countFuture.length,
+      },
+    };
+  }
+
+  // Health Examination Schedule for Doctor
+  async getHealthExamScheduleForDoctor({
+    offset = 0,
     limit = 100,
     staffId,
     date,
@@ -886,32 +1005,23 @@ class WorkServices {
       console.log("---docDelete: ", docDelete);
       const dateSelect = moment(date).format("L");
       // check booking
-      const bookingDoc = await db.HealthRecord.findOne({
+      const bookingDoc = await db.Booking.findOne({
         raw: true,
         nest: true,
-        where: {
-          statusCode: {
-            [Op.ne]: "S4",
-          },
-        },
+        where: {},
         include: [
           {
-            model: db.Booking,
+            model: db.HealthExaminationSchedule,
+            where: {
+              date: dateSelect,
+              timeCode: {
+                [Op.in]: docDelete,
+              },
+            },
             include: [
               {
-                model: db.HealthExaminationSchedule,
-                where: {
-                  date: dateSelect,
-                  timeCode: {
-                    [Op.in]: docDelete,
-                  },
-                },
-                include: [
-                  {
-                    model: db.Code,
-                    as: "TimeCode",
-                  },
-                ],
+                model: db.Code,
+                as: "TimeCode",
               },
             ],
           },
@@ -920,10 +1030,10 @@ class WorkServices {
 
       console.log("\n\nbookingDoc------------------------", bookingDoc);
 
-      if (bookingDoc?.Booking?.id) {
+      if (bookingDoc) {
         return {
           statusCode: 4,
-          msg: `Không thể xóa. Lịch ${bookingDoc.Booking.HealthExaminationSchedule.TimeCode.value} đã có người đặt.`,
+          msg: `Không thể xóa. Lịch ${bookingDoc.HealthExaminationSchedule.TimeCode.value} đã có người đặt.`,
         };
       }
 
@@ -997,7 +1107,7 @@ class WorkServices {
       }
       return {
         statusCode: 0,
-        msg: "Dữ liệu chưa thay đổi.",
+        msg: "Đã lưu thay đổi.",
       };
     } else {
       // If creating a new schedule

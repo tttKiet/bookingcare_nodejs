@@ -20,6 +20,19 @@ module.exports = {
           updatedAt: new Date(),
         },
         {
+          id: uuidv4(),
+          fullName: "Trịnh Tuấn",
+          email: "hospital_manager@gmail.com",
+          password:
+            "$2b$10$iuH69vrqzsaadhYLa0QPN.PK5ToH6IL7KCOmnbEe.wPiLMSoYuFaK",
+          phone: "0974688851",
+          gender: 1,
+          address: "HA NOI",
+          roleId: "fad3735b-c6b6-4e52-8e35-d965291eba93",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
           id: "418bc007-b26a-489e-9a17-e9ab207750cf",
           fullName: "Lại Thế Văn",
           email: "doctor7@gmail.com",

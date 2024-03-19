@@ -2,7 +2,7 @@ import db from "../app/models";
 import { Op } from "sequelize";
 
 class adminService {
-  // cedicine
+  // Cedicine
   async createOrUpdateCedicine({ name, price, id }) {
     // create a new cedicine
     if (!id) {
@@ -116,6 +116,131 @@ class adminService {
     return {
       statusCode: 400,
       msg: "Thuốc này chưa được xóa hay không tồn tại.",
+    };
+  }
+
+  // Examination Services
+  async createOrUpdateExaminationService({ name, description, id }) {
+    // create a new Examination Service
+    if (!id) {
+      // check name existed
+      const docExist = await db.ExaminationService.findOne({
+        where: {
+          name,
+        },
+        raw: true,
+      });
+
+      if (docExist) {
+        return {
+          statusCode: 400,
+          msg: "Tên dịch vụ đã tồn tại",
+          data: docExist,
+        };
+      }
+
+      // create
+      const serviceDoc = await db.ExaminationService.create({
+        name,
+        description,
+      });
+
+      if (serviceDoc) {
+        return {
+          statusCode: 200,
+          msg: "Tạo dịch vụ thành công!",
+          data: serviceDoc,
+        };
+      }
+
+      return {
+        statusCode: 500,
+        msg: "Tạo dịch vụ khám bệnh thất bại! Đã có lỗi xảy ra.",
+      };
+    }
+    // update
+    else {
+      const doc = await db.ExaminationService.update(
+        {
+          name,
+          description,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+      if (doc?.[0] > 0) {
+        return {
+          statusCode: 200,
+          msg: "Đã lưu thay đổi.",
+        };
+      }
+      return {
+        statusCode: 400,
+        msg: "Đã có lỗi xảy ra. Không có id này!",
+      };
+    }
+  }
+
+  async getExaminationService({ offset = 0, limit = 3, name }) {
+    const whereQuery = {};
+    name &&
+      (whereQuery.name = {
+        [Op.substring]: name,
+      });
+
+    const docs = await db.ExaminationService.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQuery,
+      order: [["createdAt", "desc"]],
+    });
+
+    return {
+      statusCode: 200,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...docs,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  async deleteExaminationService({ id }) {
+    // check hospital have service
+    const hospitalServiceExisted = await db.HospitalService.findOne({
+      raw: true,
+      where: {
+        examinationServiceId: id,
+      },
+    });
+
+    if (hospitalServiceExisted) {
+      return {
+        statusCode: 400,
+        msg: "Dịch vụ này đang được dùng.",
+      };
+    }
+
+    const docs = await db.ExaminationService.destroy({
+      where: {
+        id,
+      },
+    });
+    if (docs > 0) {
+      return {
+        statusCode: 200,
+        msg: "Xóa thành công.",
+        data: docs,
+      };
+    }
+    return {
+      statusCode: 400,
+      msg: "Dịch vụ này chưa được xóa hay không tồn tại.",
     };
   }
 }
