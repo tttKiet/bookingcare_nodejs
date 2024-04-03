@@ -16,6 +16,25 @@ var app = express();
 app.use(logger("dev"));
 
 // Parse body object from request
+// Cors
+
+// app.use(function (req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Methods", "*");
+//   res.header(
+//     "Access-Control-Allow-Headers",
+//     "Origin, X-Requested-With, Content-Type, Accept"
+//   );
+//   next();
+// });
+
+const corsOptions = {
+  origin: ["http://127.0.0.1:3000", "https://sandbox.vnpayment.vn", "*"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -24,14 +43,6 @@ connectDb();
 
 // Use Middaleware
 app.use(handleError);
-
-// Cors
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-    credentials: true,
-  })
-);
 
 // Use CookieParser
 app.use(cookieParser());

@@ -21,6 +21,10 @@ router
   .post(staffController.handleCreateOrUpdateHealthExamSchedule)
   .delete(staffController.handleDeleteHealthExamSchedule);
 
+// booking
+
+router.route("/booking").get(staffController.handleGetBooking);
+
 // router.get(
 //   "/health-exam-schedule-full-info",
 //   staffController.handleGetHealthExamScheduleFullInfor

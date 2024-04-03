@@ -5,11 +5,7 @@ import express from "express";
 const router = express.Router();
 
 // Work
-router.post(
-  "/work",
-  verifyTokenManager,
-  adminController.handleCreateOrUpdateWork
-);
+router.post("/work", adminController.handleCreateOrUpdateWork);
 
 router.get("/work", verifyTokenManager, adminController.handleGetWorking);
 router.delete("/work", verifyTokenManager, adminController.handleDeleteWorking);

@@ -1,6 +1,8 @@
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
 import db from "../app/models";
 import bcrypt from "bcrypt";
+import workServices from "./workServices";
+import { raw } from "express";
 const saltRounds = 10;
 
 class UserServices {
@@ -405,8 +407,15 @@ class UserServices {
     patientProfileId,
     descriptionDisease,
     userId,
+    paymentType,
   }) {
-    // Check data existed
+    if (paymentType !== "card" && paymentType !== "hospital") {
+      return {
+        statusCode: 400,
+        msg: "Dữ liệu về phương thức thanh toán không chính xác",
+      };
+    }
+    //  Check data existed
     const [schedule, patientProfile] = await Promise.all([
       db.HealthExaminationSchedule.findByPk(healthExaminationScheduleId, {
         raw: true,
@@ -440,74 +449,130 @@ class UserServices {
       raw: true,
     });
 
-    if (bookingExists) {
+    if (bookingExists && bookingExists.status === "CU1") {
       return {
-        statusCode: 4,
-        msg: "Hồ sơ bạn chọn đã đặt lịch này.",
+        statusCode: 0,
+        msg: "Lấy dữ liệu để thanh toán",
+        data: bookingExists,
+      };
+    } else if (bookingExists && bookingExists.status === "CU2") {
+      return {
+        statusCode: 400,
+        msg: "Hồ sơ bệnh nhân của bạn đã đặt lịch này.",
+        data: bookingExists,
       };
     }
 
-    // Check booking available
+    // get doctor current
+    const doctorWorkRoom = await workServices.getWorkRoomFromWorking({
+      workingId: schedule.workingId,
+      type: "thanFromDateHere",
+    });
+    if (!doctorWorkRoom) {
+      return {
+        statusCode: 500,
+        msg: `Bác sỉ chưa được thêm vào phòng khám.`,
+      };
+    }
+    const doctorPrice = doctorWorkRoom.checkUpPrice;
+
     const isBooking = await this.isBooking(healthExaminationScheduleId);
+
+    // check code CU1 existed
+    const codeExists = await db.Code.findOne({
+      where: {
+        key: "CU1",
+      },
+    });
+
+    if (!codeExists) {
+      return {
+        statusCode: 400,
+        msg: "Không tìm thấy dữ liệu CU1 - 'Chờ thanh toán'",
+      };
+    }
+
     if (isBooking) {
       const bookingEntity = await db.Booking.create({
         healthExaminationScheduleId,
         patientProfileId,
         descriptionDisease,
+        paymentType,
+        doctorPrice,
+        status: "CU1",
       });
+
       const bookingDoc = bookingEntity.get({ plain: true });
-
-      // Create Record
-      const statusDefault = await db.Code.findOne({
-        where: {
-          key: "S1",
-        },
-      });
-      if (!statusDefault)
-        return {
-          statusCode: 4,
-          msg: "Trạng thái (status) S1 chưa được tạo.",
-        };
-      console.log("---schedule--------------------", schedule);
-      const orderNumber = await db.Booking.findAll({
-        raw: true,
-        include: [
-          {
-            model: db.HealthExaminationSchedule,
-            where: {
-              date: schedule.date,
-            },
-            include: [
-              {
-                model: db.Working,
-                where: {
-                  id: schedule.workingId,
-                },
-              },
-            ],
-          },
-        ],
-      });
-
-      const recordDoc = await db.HealthRecord.create(
-        {
-          bookingId: bookingDoc.id,
-          statusCode: "S1",
-          orderNumber: orderNumber ? orderNumber.length : 1,
-        },
-        {
-          raw: true,
-        }
-      );
       return {
         statusCode: 0,
-        msg: `Bạn đã đặt lịch thành công. Mã phiếu khám bệnh ${recordDoc.id}`,
-        data: recordDoc,
+        msg: `Bạn đã đặt lịch thành công.`,
+        data: bookingDoc,
       };
     } else {
       return {
         statusCode: 2,
         msg: "Đã có người vừa đặt lịch này, lịch đã đủ người khám. Vui lòng đăng ký lịch khác!",
+      };
+    }
+  }
+
+  async updateStatusBooking({ status, bookingId }) {
+    const checkStatusExited = await db.Code.findOne({
+      where: {
+        key: status,
+      },
+      raw: true,
+    });
+
+    if (!checkStatusExited) {
+      return {
+        statusCode: 500,
+        msg: "Mã trạng thái không tồn tại. [CODE]",
+      };
+    }
+
+    const bookingUpdate = await db.Booking.update(
+      { status },
+      {
+        where: {
+          id: bookingId,
+        },
+        include: [
+          {
+            model: db.HealthExaminationSchedule,
+            include: [
+              {
+                model: db.Working,
+              },
+            ],
+          },
+          {
+            model: db.PatientProfile,
+          },
+          {
+            model: db.Code,
+          },
+        ],
+      }
+    );
+
+    if (bookingUpdate[0] > 0) {
+      const bookingFilter = await db.Booking.findOne({
+        where: {
+          id: bookingId,
+        },
+        draw: true,
+      });
+
+      return {
+        statusCode: 0,
+        msg: "Cập nhật booking thành công.",
+        data: bookingFilter,
+      };
+    } else {
+      return {
+        statusCode: 4,
+        msg: "Không tìm booking này.",
       };
     }
   }

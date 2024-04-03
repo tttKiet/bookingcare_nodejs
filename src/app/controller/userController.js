@@ -192,12 +192,13 @@ class UserController {
     }
   }
 
-  // [POST] /api/v1/user/booking
-  async handleBooking(req, res) {
+  // [POST] middle ware
+  async handleBooking(req, res, next) {
     // Get user logined
     const userId = req.user.id;
     const {
       healthExaminationScheduleId,
+      paymentType,
       patientProfileId,
       descriptionDisease,
     } = req.body;
@@ -205,7 +206,8 @@ class UserController {
       !healthExaminationScheduleId ||
       !patientProfileId ||
       !descriptionDisease ||
-      !userId
+      !userId ||
+      !paymentType
     ) {
       return res.status(401).json({
         statusCode: 1,
@@ -219,11 +221,10 @@ class UserController {
         patientProfileId,
         descriptionDisease,
         userId,
+        paymentType,
       });
-      if (data.statusCode === 0) {
-        return res.status(200).json(data);
-      }
-      return res.status(400).json(data);
+      req.dataBooking = data;
+      next();
     } catch (err) {
       console.log(err);
       return res

@@ -110,6 +110,74 @@ class StaffServices {
     };
   }
 
+  // booking
+  async getBooking({
+    offset = 0,
+    limit = 10,
+    staffId,
+    date,
+    timeCodeId,
+    patientProfileName,
+  }) {
+    const whereStaff = {};
+    staffId && (whereStaff.staffId = staffId);
+
+    const whereSchedule = {};
+
+    if (date) {
+      const dateFilter = moment(date).format("L");
+      whereSchedule.date = dateFilter;
+    }
+
+    if (timeCodeId) {
+      whereSchedule.timeCode = timeCodeId;
+    }
+
+    const wherePatientProfile = {};
+    if (patientProfileName) {
+      wherePatientProfile.fullName = {
+        [Op.substring]: patientProfileName,
+      };
+    }
+
+    const docs = await db.Booking.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      order: [["createdAt", "desc"]],
+      nest: true,
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          where: whereSchedule,
+          include: [
+            {
+              model: db.Working,
+              where: whereStaff,
+            },
+          ],
+        },
+        {
+          model: db.PatientProfile,
+          where: wherePatientProfile,
+        },
+        {
+          model: db.Code,
+        },
+      ],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...docs,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
   // Get Doctor With Email
   async getDoctorWithEmail({ offset = 0, limit = 3, email }) {
     const whereQuery = {};
@@ -563,6 +631,7 @@ class StaffServices {
     workingId,
     healthFacilityId,
     doctorId,
+    current = "current",
   }) {
     const whereQueryDoctor = {};
     const whereQueryWorking = {};
@@ -579,6 +648,19 @@ class StaffServices {
     healthFacilityId && (whereQueryWorking.healthFacilityId = healthFacilityId);
 
     workingId && (whereQueryWorking.id = workingId);
+
+    if (current == "current") {
+      whereQueryWorking[Op.or] = [
+        {
+          endDate: null,
+        },
+        {
+          endDate: {
+            [Op.gt]: new Date(),
+          },
+        },
+      ];
+    }
 
     const docs = await db.Working.findAndCountAll({
       raw: true,
@@ -609,14 +691,9 @@ class StaffServices {
 
   // [GET] /check-up/health-record
   async getRecordCheckUp({ date, staffId }) {
-    console.log("\nstaffId------------------------------------\n", {
-      staffId,
-    });
     const workingDoctor = await this.getDoctorWorking({ doctorId: staffId });
     const workingId = workingDoctor?.data?.rows?.[0].id;
-    console.log("workingId--------------------------------\n\n\n", {
-      workingId,
-    });
+
     const results = {};
     if (workingId) {
       // Check where check up

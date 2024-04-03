@@ -20,6 +20,11 @@ module.exports = (sequelize, DataTypes) => {
       Booking.hasOne(models.HealthRecord, {
         foreignKey: "bookingId",
       });
+
+      Booking.belongsTo(models.Code, {
+        foreignKey: "status",
+        targetKey: "key",
+      });
     }
   }
   Booking.init(
@@ -46,9 +51,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         type: DataTypes.REAL,
       },
-      paymentStatus: {
+      status: {
         allowNull: false,
-        type: DataTypes.BOOLEAN,
+        type: DataTypes.STRING,
       },
       paymentType: {
         allowNull: false,

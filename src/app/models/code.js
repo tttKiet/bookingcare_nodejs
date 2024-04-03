@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: "key",
         as: "status",
       });
+      Code.hasMany(models.Booking, {
+        foreignKey: "status",
+        sourceKey: "key",
+      });
     }
   }
   Code.init(

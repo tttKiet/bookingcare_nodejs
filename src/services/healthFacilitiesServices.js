@@ -218,7 +218,7 @@ class healthFacilitiesServices {
     searchNameOrEmail,
     id,
   }) {
-    const whereQuery = {};
+    let whereQuery = {};
     const whereType = {};
 
     typeHealthFacilityId?.length > 0 &&
@@ -231,19 +231,22 @@ class healthFacilitiesServices {
         [Op.substring]: name,
       });
     id && (whereQuery.id = id);
+    console.log("searchNameOrEmail----", searchNameOrEmail);
     searchNameOrEmail &&
-      (whereQuery[Op.or] = [
-        {
-          name: {
-            [Op.substring]: searchNameOrEmail,
+      (whereQuery = {
+        [Op.or]: [
+          {
+            name: {
+              [Op.substring]: searchNameOrEmail,
+            },
           },
-        },
-        {
-          email: {
-            [Op.substring]: searchNameOrEmail,
+          {
+            email: {
+              [Op.substring]: searchNameOrEmail,
+            },
           },
-        },
-      ]);
+        ],
+      });
 
     address &&
       (whereQuery.address = {

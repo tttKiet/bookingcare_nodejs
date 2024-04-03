@@ -97,6 +97,30 @@ class StaffController {
     }
   }
 
+  // [GET] /booking
+  async handleGetBooking(req, res) {
+    const { offset, limit, staffId, date, timeCodeId, patientProfileName } =
+      req.query;
+    try {
+      const data = await staffServices.getBooking({
+        offset,
+        limit,
+        staffId,
+        date,
+        timeCodeId,
+        patientProfileName,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
   // [GET] /working
   async handleGetDoctorWorking(req, res) {
     const {
@@ -107,6 +131,7 @@ class StaffController {
       workingId,
       healthFacilityId,
       doctorId,
+      current,
     } = req.query;
     try {
       const data = await staffServices.getDoctorWorking({
@@ -117,6 +142,7 @@ class StaffController {
         workingId,
         healthFacilityId,
         doctorId,
+        current,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

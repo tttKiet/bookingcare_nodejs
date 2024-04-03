@@ -3,6 +3,7 @@ import adminRouter from "./admin";
 import userRouter from "./user";
 import doctorRouter from "./docter";
 import managerRouter from "./manager";
+import paymentRouter from "./payment";
 import express from "express";
 const router = express.Router();
 
@@ -11,5 +12,6 @@ router.use("/user", userRouter);
 router.use("/admin", adminRouter);
 router.use("/doctor", doctorRouter);
 router.use("/manager", managerRouter);
+router.use("/payment", paymentRouter);
 
 export default router;

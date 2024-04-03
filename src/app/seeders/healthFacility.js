@@ -97,17 +97,6 @@ module.exports = {
           createdAt: "2023-11-10T12:51:55.289Z",
           updatedAt: "2023-11-10T12:51:55.289Z",
         },
-        {
-          id: "c343ed8b-ad2b-4481-bcf1-d71fd7f0131e",
-          images: ["https://bookingcare-clound.s3.amazonaws.com/1699620537649"],
-          name: "Bệnh viện thành phố HCM ",
-          address: "TP Hcm",
-          phone: "0901161451",
-          email: "hcm@gmail.com",
-          typeHealthFacilityId: "555f7809-f220-4f96-910c-bf23788815b9",
-          createdAt: "2023-11-10T12:49:01.434Z",
-          updatedAt: "2023-11-10T12:49:01.434Z",
-        },
       ],
       {}
     );

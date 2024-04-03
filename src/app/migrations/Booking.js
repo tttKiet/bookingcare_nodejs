@@ -25,9 +25,9 @@ module.exports = {
         allowNull: false,
         type: Sequelize.FLOAT,
       },
-      paymentStatus: {
+      status: {
         allowNull: false,
-        type: Sequelize.BOOLEAN,
+        type: Sequelize.STRING,
       },
       paymentType: {
         allowNull: false,

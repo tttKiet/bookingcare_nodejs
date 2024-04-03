@@ -3,6 +3,7 @@ import db from "../app/models";
 
 import moment from "moment";
 import userServices from "./userServices";
+import workServices from "./workServices";
 
 class WorkServices {
   // Work
@@ -323,7 +324,11 @@ class WorkServices {
   }
 
   // Work Room
-  async getWorkRoomFromWorking({ workingId }) {
+  async getWorkRoomFromWorking({ workingId, type }) {
+    let order = [];
+    if (type == "thanFromDateHere") {
+      order = [["applyDate", "desc"]];
+    }
     const docs = await db.WorkRoom.findOne({
       raw: true,
       include: [
@@ -360,6 +365,7 @@ class WorkServices {
         },
       ],
       nest: true,
+      order: order,
     });
 
     return docs;
@@ -731,21 +737,47 @@ class WorkServices {
     type = "all",
     raw,
   }) {
-    const whereQueryDoctor = {};
+    const whereHealthExaminationSchedule = {};
     const whereQuery = {};
     const whereQueryWorking = {};
 
     staffId && (whereQueryWorking.staffId = staffId);
     workingId && (whereQueryWorking.id = workingId);
     date && (whereQuery.date = moment(date).format("L"));
+
+    let getWorkingId;
+    if (staffId) {
+      const working = await workServices.getWorking({ doctorId: staffId });
+      if (working.statusCode === 0 && working?.data?.rows?.[0]?.id) {
+        getWorkingId = working.data?.rows?.[0]?.id;
+      } else {
+        return {
+          statusCode: 400,
+          msg: "Bác sỉ chưa được phân công công tác.",
+          data: {
+            rows: [],
+            limit: 0,
+            offset: 0,
+            count: 0,
+          },
+        };
+      }
+    }
+    staffId && (whereQuery.workingId = getWorkingId);
+    staffId && (whereHealthExaminationSchedule.workingId = getWorkingId);
+    console.log("---------------,getWorkingId", getWorkingId);
     // check date distinct
     const dateDistincts = await db.HealthExaminationSchedule.findAndCountAll({
       attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
       offset,
       limit,
-      where: whereQuery,
+      where: {
+        ...whereQuery,
+      },
       order: [["date", "asc"]],
     });
+
+    console.log("dateDistincts-----------------", dateDistincts);
 
     const countFuture = await db.HealthExaminationSchedule.findAll({
       attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
@@ -753,6 +785,7 @@ class WorkServices {
         date: {
           [Op.gt]: moment(new Date()).format("L"),
         },
+        ...whereHealthExaminationSchedule,
       },
     });
 
@@ -776,6 +809,7 @@ class WorkServices {
         ],
         where: {
           date: d.date,
+          ...whereHealthExaminationSchedule,
         },
         raw: true,
       });
@@ -799,7 +833,10 @@ class WorkServices {
         });
 
         const staff = await db.Working.findOne({
-          where: { id: workingId.workingId },
+          where: {
+            id: workingId.workingId,
+            ...whereQueryWorking,
+          },
           include: [
             db.HealthFacility,
             {
@@ -827,6 +864,14 @@ class WorkServices {
       count: ds.count,
       rows: docs,
     };
+    // console.log("results", results);
+    // const filters = results.rows.filter(
+    //   (r) => r?.data?.some((e) => e.working !== null).length > 0
+    // );
+    // console.log("filters", filters);
+    // const endData = {
+    //   count:
+    // }
 
     return {
       statusCode: 0,
@@ -1028,8 +1073,6 @@ class WorkServices {
         ],
       });
 
-      console.log("\n\nbookingDoc------------------------", bookingDoc);
-
       if (bookingDoc) {
         return {
           statusCode: 4,
@@ -1072,10 +1115,7 @@ class WorkServices {
             },
           },
         });
-        console.log(
-          "----------------------------------------------------------------isDeleted",
-          isDeleted
-        );
+
         if (isDeleted == 0)
           return {
             statusCode: 1,

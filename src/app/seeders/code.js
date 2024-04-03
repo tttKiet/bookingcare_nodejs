@@ -81,6 +81,26 @@ module.exports = {
           key: "S3",
           value: "Đã hủy",
         },
+        {
+          name: "CheckUp",
+          key: "CU1",
+          value: "Chờ thanh toán",
+        },
+        {
+          name: "CheckUp",
+          key: "CU2",
+          value: "Đã thanh toán",
+        },
+        {
+          name: "CheckUp",
+          key: "CU3",
+          value: "Đã khám",
+        },
+        {
+          name: "CheckUp",
+          key: "CU4",
+          value: "Đã hủy",
+        },
       ],
       {}
     );
