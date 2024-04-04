@@ -5,7 +5,7 @@ import {
   workServices,
 } from "../../services";
 // import { uploadAwsS3, s3 } from "../../middleWares";
-import { deleteImagesFromS3 } from "../../untils";
+import { deleteImagesFromS3, sendEmail } from "../../untils";
 import staffServices from "../../services/staffServices";
 class AdminController {
   // [POST] /admin/health-facilities/type
@@ -1165,6 +1165,16 @@ class AdminController {
         .status(500)
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
+  }
+
+  async handleTestEmail(req, res) {
+    await sendEmail({
+      receiveEmail: [
+        // "kietb2014754@student.ctu.edu.vn",
+        "catb2014730@student.ctu.edu.vn",
+      ],
+    });
+    return res.status(200).json({ msg: "Lỗi server. Thử lại sau!" });
   }
 }
 

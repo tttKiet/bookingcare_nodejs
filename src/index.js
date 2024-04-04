@@ -1,9 +1,9 @@
-import express from "express";
-import path from "path";
-import logger from "morgan";
-import "dotenv/config";
-import connectDb from "./config/db";
 import cookieParser from "cookie-parser";
+import "dotenv/config";
+import express from "express";
+import logger from "morgan";
+import path from "path";
+import connectDb from "./config/db";
 import router from "./routes";
 // import multer from "multer";
 // import multerS3 from "multer-s3";

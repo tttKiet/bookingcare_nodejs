@@ -162,4 +162,7 @@ router
 // Hospital Service
 router.route("/hospital-service").get(adminController.handleGetHospitalService);
 
+//api/test/admin/test-email
+router.route("/test-email").get(adminController.handleTestEmail);
+
 export default router;

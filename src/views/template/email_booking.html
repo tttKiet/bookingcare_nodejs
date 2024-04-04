@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Appointment Confirmation</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    "
+  >
+    <div
+      style="
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <h1 style="color: #333; text-align: center">Thông tin đặt khám</h1>
+      <p style="color: #666">Dear {{name}},</p>
+      <p style="color: #666">
+        Cuộc hẹn của bạn đã được lên lịch thành công. Chi tiết xem bên dưới:
+      </p>
+      <div style="margin-top: 30px">
+        <p style="color: #666; margin-bottom: 10px">
+          <strong>Date:</strong> {{date}}
+        </p>
+        <p style="color: #666; margin-bottom: 10px">
+          <strong>Time:</strong> {{time}}
+        </p>
+        <p style="color: #666; margin-bottom: 10px">
+          <strong>Doctor:</strong> {{doctor}}
+        </p>
+        <p style="color: #666; margin-bottom: 10px">
+          <strong>Location:</strong> {{location}}
+        </p>
+      </div>
+      <div style="margin-top: 30px; text-align: center">
+        <p style="color: #999">
+          Đây là email tự động. Vui lòng không trả lời email này!
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

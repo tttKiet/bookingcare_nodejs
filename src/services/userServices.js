@@ -3,6 +3,10 @@ import db from "../app/models";
 import bcrypt from "bcrypt";
 import workServices from "./workServices";
 import { raw } from "express";
+import { sendEmail as sendEmailHtml } from "../untils";
+import moment from "moment";
+import * as path from "path";
+
 const saltRounds = 10;
 
 class UserServices {
@@ -516,7 +520,7 @@ class UserServices {
     }
   }
 
-  async updateStatusBooking({ status, bookingId }) {
+  async updateStatusBooking({ status, bookingId, sendEmail = false }) {
     const checkStatusExited = await db.Code.findOne({
       where: {
         key: status,
@@ -529,6 +533,37 @@ class UserServices {
         statusCode: 500,
         msg: "Mã trạng thái không tồn tại. [CODE]",
       };
+    }
+    let isSendEmail = false;
+    if (sendEmail) {
+      const bookingFilter = await db.Booking.findOne({
+        raw: true,
+        nest: true,
+        where: {
+          id: bookingId,
+        },
+        include: [
+          {
+            model: db.HealthExaminationSchedule,
+            include: [
+              {
+                model: db.Working,
+              },
+            ],
+          },
+          {
+            model: db.PatientProfile,
+          },
+          {
+            model: db.Code,
+          },
+        ],
+      });
+
+      if (bookingFilter && bookingFilter.status === "CU1") {
+        // send email
+        isSendEmail = true;
+      }
     }
 
     const bookingUpdate = await db.Booking.update(
@@ -556,25 +591,57 @@ class UserServices {
       }
     );
 
-    if (bookingUpdate[0] > 0) {
-      const bookingFilter = await db.Booking.findOne({
-        where: {
-          id: bookingId,
+    const bookingFilter = await db.Booking.findOne({
+      where: {
+        id: bookingId,
+      },
+      draw: true,
+      include: [
+        db.PatientProfile,
+        {
+          model: db.HealthExaminationSchedule,
+          include: [
+            {
+              model: db.Code,
+              as: "TimeCode",
+            },
+            {
+              model: db.Working,
+              include: [db.Staff, db.HealthFacility],
+            },
+          ],
         },
-        draw: true,
-      });
+      ],
+      nest: true,
+    });
+    if (isSendEmail) {
+      const replacements = {
+        name: bookingFilter.PatientProfile.fullName,
+        time: bookingFilter.HealthExaminationSchedule.TimeCode.value,
+        date: moment(bookingFilter.HealthExaminationSchedule.date).format("L"),
+        doctor: bookingFilter.HealthExaminationSchedule.Working.Staff.fullName,
+        location: `${bookingFilter.HealthExaminationSchedule.Working.HealthFacility.name}`,
+      };
 
-      return {
-        statusCode: 0,
-        msg: "Cập nhật booking thành công.",
-        data: bookingFilter,
-      };
-    } else {
-      return {
-        statusCode: 4,
-        msg: "Không tìm booking này.",
-      };
+      try {
+        const __dirname = path.resolve();
+        const srcHtml = "/src/views/template/email_booking_2.html";
+        const filePath = path.join(__dirname, srcHtml);
+        await sendEmailHtml({
+          receiveEmail: bookingFilter?.PatientProfile?.email,
+          replacements,
+          srcHtml: filePath,
+        });
+      } catch (error) {
+        console.log(error);
+      }
     }
+
+    return {
+      statusCode: 0,
+      msg: "Cập nhật booking thành công.",
+      data: bookingFilter,
+    };
   }
 
   async getHealthRecordWithTimeCode(timeCodeId) {

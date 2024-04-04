@@ -23,6 +23,8 @@ router.post(
 );
 
 router.get("/vnpay/vnpay_return", paymentController.vnpay_return);
-// router.get("/vnpay/vnpay_return", paymentController.vnpay_return);
+
+// only ssl
+router.get("/vnpay/vnpay_ipn", paymentController.vnpay_ipn);
 
 export default router;

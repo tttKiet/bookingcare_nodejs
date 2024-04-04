@@ -92,7 +92,7 @@ class PaymentController {
     var signData = querystring.stringify(vnp_Params, { encode: false });
     var hmac = crypto.createHmac("sha512", secretKey);
     var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
-    console.log("signed", signed);
+    // console.log("signed", signed);
     if (secureHash === signed) {
       var orderId = vnp_Params["vnp_TxnRef"];
       var rspCode = vnp_Params["vnp_ResponseCode"];
@@ -100,6 +100,7 @@ class PaymentController {
       const updateBooking = await userServices.updateStatusBooking({
         status: "CU2",
         bookingId: orderId,
+        sendEmail: true,
       });
 
       if (updateBooking.statusCode == 0) {
@@ -114,9 +115,9 @@ class PaymentController {
           msg: "Đơn hàng đã bị xóa hoặc không tìm thấy.",
         });
       }
-      //Kiem tra du lieu co hop le khong, cap nhat trang thai don hang va gui ket qua cho VNPAY theo dinh dang duoi
+      // Kiem tra du lieu co hop le khong, cap nhat trang thai don hang va gui ket qua cho VNPAY theo dinh dang duoi
 
-      // res.render("success", { code: vnp_Params["vnp_ResponseCode"] });
+      // res.status(200).json({ code: vnp_Params["vnp_ResponseCode"] });
     } else {
       return res.status(500).json({
         statusCode: 500,
@@ -125,48 +126,34 @@ class PaymentController {
     }
   }
 
-  // async vnpay_return(req, res, next) {
-  //   var vnp_Params = req.query;
+  async vnpay_ipn(req, res) {
+    console.log(
+      "---------------------------------------------------------------------------------"
+    );
+    var vnp_Params = req.query;
+    var secureHash = vnp_Params["vnp_SecureHash"];
 
-  //   var secureHash = vnp_Params["vnp_SecureHash"];
+    delete vnp_Params["vnp_SecureHash"];
+    delete vnp_Params["vnp_SecureHashType"];
 
-  //   delete vnp_Params["vnp_SecureHash"];
-  //   delete vnp_Params["vnp_SecureHashType"];
+    vnp_Params = sortObject(vnp_Params);
+    var config = require("config");
+    var secretKey = config.get("vnp_HashSecret");
+    var querystring = require("qs");
+    var signData = querystring.stringify(vnp_Params, { encode: false });
+    var crypto = require("crypto");
+    var hmac = crypto.createHmac("sha512", secretKey);
+    var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
 
-  //   vnp_Params = sortObject(vnp_Params);
-
-  //   var tmnCode = config.get("vnp_TmnCode");
-  //   var secretKey = config.get("vnp_HashSecret");
-
-  //   var signData = querystring.stringify(vnp_Params, { encode: false });
-  //   var hmac = crypto.createHmac("sha512", secretKey);
-  //   var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
-
-  //   if (secureHash === signed) {
-  //     //Kiem tra xem du lieu trong db co hop le hay khong va thong bao ket qua
-
-  //     res.render("success", { code: vnp_Params["vnp_ResponseCode"] });
-  //   } else {
-  //     res.render("success", { code: "97" });
-  //   }
-  // }
-  // sds() {
-  //   const element = document.evaluate(
-  //     '//div[@class="relative select-none w-full py-[0.6rem] text-center text-black cursor-pointer font-bold"]/div[@class="relative z-10 h-full w-full"]',
-  //     document,
-  //     null,
-  //     XPathResult.FIRST_ORDERED_NODE_TYPE,
-  //     null
-  //   ).singleNodeValue;
-  //   if (element) {
-  //     const divText = element.textContent.trim();
-
-  //     const match = divText.match(/\((\d+)\)/);
-
-  //     const number = parseInt(match[1], 10);
-  //     return number;
-  //   }
-  // }
+    if (secureHash === signed) {
+      var orderId = vnp_Params["vnp_TxnRef"];
+      var rspCode = vnp_Params["vnp_ResponseCode"];
+      //Kiem tra du lieu co hop le khong, cap nhat trang thai don hang va gui ket qua cho VNPAY theo dinh dang duoi
+      res.status(200).json({ RspCode: "00", Message: "success" });
+    } else {
+      res.status(200).json({ RspCode: "97", Message: "Fail checksum" });
+    }
+  }
 }
 
 export default new PaymentController();
