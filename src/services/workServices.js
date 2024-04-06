@@ -612,7 +612,18 @@ class WorkServices {
   }
 
   // return a list of id doctor
-  async getListIdDoctorWorking(healthFacilityId) {
+  async getListIdDoctorWorking(healthFacilityId, doctorName, doctorEmail) {
+    const whereStaff = {};
+    if (doctorName) {
+      whereStaff.fullName = {
+        [Op.substring]: doctorName,
+      };
+    }
+    if (doctorEmail) {
+      whereStaff.email = {
+        [Op.substring]: doctorEmail,
+      };
+    }
     const workDoc = await db.Working.findAll({
       where: {
         healthFacilityId,
@@ -627,6 +638,13 @@ class WorkServices {
           },
         ],
       },
+      include: [
+        {
+          model: db.Staff,
+          where: whereStaff,
+        },
+      ],
+      nest: true,
       raw: true,
     });
     return workDoc;
@@ -656,10 +674,14 @@ class WorkServices {
     offset = 0,
     limit = 10,
     healthFacilityId,
+    doctorName,
+    doctorEmail,
     // roomNumber,
   }) {
     const listIdDoctorWorking = await this.getListIdDoctorWorking(
-      healthFacilityId
+      healthFacilityId,
+      doctorName,
+      doctorEmail
     );
 
     const promiseAll = listIdDoctorWorking.map((working) => {
@@ -765,7 +787,6 @@ class WorkServices {
     }
     staffId && (whereQuery.workingId = getWorkingId);
     staffId && (whereHealthExaminationSchedule.workingId = getWorkingId);
-    console.log("---------------,getWorkingId", getWorkingId);
     // check date distinct
     const dateDistincts = await db.HealthExaminationSchedule.findAndCountAll({
       attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
@@ -776,8 +797,6 @@ class WorkServices {
       },
       order: [["date", "asc"]],
     });
-
-    console.log("dateDistincts-----------------", dateDistincts);
 
     const countFuture = await db.HealthExaminationSchedule.findAll({
       attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
@@ -816,7 +835,7 @@ class WorkServices {
 
       // map
       const resultsPromises = wokingIdDistincts.map(async (workingId) => {
-        const data = await db.HealthExaminationSchedule.findAll({
+        const dataSchedule = await db.HealthExaminationSchedule.findAll({
           where: {
             date: d.date,
             workingId: workingId.workingId,
@@ -832,6 +851,16 @@ class WorkServices {
           nest: true,
         });
 
+        const promiseGetScheduleAvailable = dataSchedule.map(async (row) => {
+          const isAvailableBooking = await userServices.isBooking(row.id);
+          return {
+            ...row,
+            isAvailableBooking,
+          };
+        });
+
+        const data = await Promise.all(promiseGetScheduleAvailable);
+
         const staff = await db.Working.findOne({
           where: {
             id: workingId.workingId,
@@ -845,6 +874,7 @@ class WorkServices {
             },
           ],
         });
+
         return {
           working: staff,
           schedules: data,
@@ -864,14 +894,6 @@ class WorkServices {
       count: ds.count,
       rows: docs,
     };
-    // console.log("results", results);
-    // const filters = results.rows.filter(
-    //   (r) => r?.data?.some((e) => e.working !== null).length > 0
-    // );
-    // console.log("filters", filters);
-    // const endData = {
-    //   count:
-    // }
 
     return {
       statusCode: 0,
@@ -946,6 +968,10 @@ class WorkServices {
 
     const promiseFields = documents.rows.map(async (row) => {
       const isAvailableBooking = await userServices.isBooking(row.id);
+      console.log(
+        "isAvailableBooking----------------------------",
+        isAvailableBooking
+      );
       return {
         ...row,
         isAvailableBooking,

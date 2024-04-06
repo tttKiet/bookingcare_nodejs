@@ -99,8 +99,15 @@ class StaffController {
 
   // [GET] /booking
   async handleGetBooking(req, res) {
-    const { offset, limit, staffId, date, timeCodeId, patientProfileName } =
-      req.query;
+    const {
+      offset,
+      limit,
+      staffId,
+      date,
+      timeCodeId,
+      patientProfileName,
+      healthExamScheduleId,
+    } = req.query;
     try {
       const data = await staffServices.getBooking({
         offset,
@@ -109,6 +116,7 @@ class StaffController {
         date,
         timeCodeId,
         patientProfileName,
+        healthExamScheduleId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

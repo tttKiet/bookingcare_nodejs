@@ -201,6 +201,7 @@ class UserServices {
     limit = 10,
     userId,
     patientProfileId,
+    profileName,
   }) {
     if (patientProfileId) {
       const docs = await db.PatientProfile.findByPk(patientProfileId);
@@ -217,9 +218,17 @@ class UserServices {
         };
       }
     } else {
+      const wherePatientProfile = {};
+      if (profileName) {
+        wherePatientProfile.fullName = {
+          [Op.substring]: profileName,
+        };
+      }
+
+      wherePatientProfile.userId = userId;
       const docs = await db.PatientProfile.findAndCountAll({
         raw: true,
-        where: { userId },
+        where: wherePatientProfile,
         offset,
         limit,
         order: [["fullName", "asc"]],
@@ -383,6 +392,7 @@ class UserServices {
   }
 
   // Booking
+  // dont fix cancel
   async countBooking(healthExaminationScheduleId) {
     const count = await db.Booking.findAll({
       where: {
@@ -400,7 +410,10 @@ class UserServices {
         raw: true,
       }
     );
+    console.log("doc-----------------------------\n\n:", doc);
     const count = await this.countBooking(healthExaminationScheduleId);
+    console.log("count-----------------------------\n\n:", count);
+
     if (doc.maxNumber > count) {
       return true;
     } else return false;

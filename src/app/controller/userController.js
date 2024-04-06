@@ -91,7 +91,7 @@ class UserController {
 
   // [GET] /api/v1/user/patient-profile
   async handleGetPatientProfile(req, res) {
-    const { limit, offset, patientProfileId } = req.query;
+    const { limit, offset, patientProfileId, profileName } = req.query;
 
     try {
       const data = await userServices.getPatientProfile({
@@ -99,6 +99,7 @@ class UserController {
         offset,
         userId: req.user.id,
         patientProfileId,
+        profileName,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -262,12 +263,15 @@ class UserController {
 
   // [GET] /api/v1/user/list-doctor-working-health
   async getDoctorWorkingOfHealth(req, res) {
-    const { healthFacilityId, limit, offset } = req.query;
+    const { healthFacilityId, doctorName, doctorEmail, limit, offset } =
+      req.query;
     try {
       const data = await workServices.getDoctorWorkingAtHealth({
         limit,
         offset,
         healthFacilityId,
+        doctorName,
+        doctorEmail,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

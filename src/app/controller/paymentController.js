@@ -11,8 +11,8 @@ class PaymentController {
     console.log("dataBooking", dataBooking);
     if (!(dataBooking && dataBooking.statusCode === 0)) {
       return res.status(500).json({
-        statusCode: 500,
-        msg: `Đã có lỗi xảy ra vui lòng thử lại.`,
+        statusCode: dataBooking.statusCode,
+        msg: dataBooking.msg,
       });
     }
 

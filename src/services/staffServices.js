@@ -118,6 +118,7 @@ class StaffServices {
     date,
     timeCodeId,
     patientProfileName,
+    healthExamScheduleId,
   }) {
     const whereStaff = {};
     staffId && (whereStaff.staffId = staffId);
@@ -131,6 +132,10 @@ class StaffServices {
 
     if (timeCodeId) {
       whereSchedule.timeCode = timeCodeId;
+    }
+
+    if (healthExamScheduleId) {
+      whereSchedule.id = healthExamScheduleId;
     }
 
     const wherePatientProfile = {};
