@@ -8,7 +8,6 @@ class PaymentController {
   async handleCreatePaymentVnpayUrl(req, res) {
     const dataBooking = req.dataBooking;
 
-    console.log("dataBooking", dataBooking);
     if (!(dataBooking && dataBooking.statusCode === 0)) {
       return res.status(500).json({
         statusCode: dataBooking.statusCode,

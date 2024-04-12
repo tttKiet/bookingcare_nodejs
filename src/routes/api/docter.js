@@ -42,6 +42,12 @@ router
   .get(staffController.handleGetRecordCheckUp)
   .patch(verifyToken, requireLogin, staffController.handleEditStatus);
 
+// Patient
+router
+  .route("/patient")
+  .post(staffController.handleCreateOrUpdatePatient)
+  .get(staffController.handleGetPatient);
+
 router.get("/chart/revenue", staffController.handleChartRevenue);
 
 export default router;

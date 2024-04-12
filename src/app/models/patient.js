@@ -54,14 +54,14 @@ module.exports = (sequelize, DataTypes) => {
       addressCode: {
         type: DataTypes.ARRAY(DataTypes.STRING),
       },
-      HealthFacilityId: {
+      healthFacilityId: {
         type: DataTypes.UUID,
       },
     },
     {
       sequelize,
       modelName: "Patient",
-      timestamps: false,
+      timestamps: true,
     }
   );
   return Patient;

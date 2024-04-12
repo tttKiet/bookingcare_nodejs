@@ -125,6 +125,7 @@ class UserController {
       cccd,
       nation,
       addressCode,
+      userId: userIdPost,
     } = req.body;
     if (
       !id &&
@@ -144,6 +145,15 @@ class UserController {
       });
     }
 
+    const userId = req.user.keyType == "user" ? req.user.id : userIdPost;
+    console.log("\n\nuserId\n\n", userId);
+    if (!userId) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào. [ userId ]",
+      });
+    }
+
     try {
       const data = await userServices.createOrUpdatePatientProfile({
         id,
@@ -156,7 +166,7 @@ class UserController {
         cccd,
         nation,
         addressCode,
-        userId: req.user.id,
+        userId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -234,20 +244,36 @@ class UserController {
     }
   }
 
-  // [GET] /api/v1/user/health-record
-  async handleGetHealthRecord(req, res) {
+  // [GET]
+  async handleGetBooking(req, res, next) {
     // Get user logined
     const userId = req.user.id;
-    console.log(req.user);
-    const { litmit, offset, healthRecordId, timeCodeId } = req.query;
+    const {
+      date,
+      healthFacilityId,
+      paymentType,
+      patientProfileId,
+      patientProfileName,
+      status,
+      bookingId,
+    } = req.query;
+    if (!userId) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+
     try {
-      const data = await userServices.getHealthRecord({
+      const data = await userServices.getBooking({
+        status,
+        date,
+        healthFacilityId,
+        paymentType,
+        patientProfileId,
+        patientProfileName,
         userId,
-        permission: req.user.role.keyType,
-        timeCodeId,
-        litmit,
-        offset,
-        healthRecordId,
+        bookingId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -260,6 +286,33 @@ class UserController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // // [GET] /api/v1/user/health-record
+  // async handleGetHealthRecord(req, res) {
+  //   // Get user logined
+  //   const userId = req.user.id;
+  //   console.log(req.user);
+  //   const { litmit, offset, healthRecordId, timeCodeId } = req.query;
+  //   try {
+  //     const data = await userServices.getHealthRecord({
+  //       userId,
+  //       permission: req.user.role.keyType,
+  //       timeCodeId,
+  //       litmit,
+  //       offset,
+  //       healthRecordId,
+  //     });
+  //     if (data.statusCode === 0) {
+  //       return res.status(200).json(data);
+  //     }
+  //     return res.status(400).json(data);
+  //   } catch (err) {
+  //     console.log(err);
+  //     return res
+  //       .status(500)
+  //       .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+  //   }
+  // }
 
   // [GET] /api/v1/user/list-doctor-working-health
   async getDoctorWorkingOfHealth(req, res) {

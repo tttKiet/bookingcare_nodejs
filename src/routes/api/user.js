@@ -13,11 +13,14 @@ router
   .delete(requireLogin, userController.handleDeletePatientProfile);
 
 // Booking and record
-router.route("/booking").post(requireLogin, userController.handleBooking);
-
 router
-  .route("/health-record")
-  .get(requireLogin, userController.handleGetHealthRecord);
+  .route("/booking")
+  .post(requireLogin, userController.handleBooking)
+  .get(requireLogin, userController.handleGetBooking);
+
+// router
+//   .route("/health-record")
+//   .get(requireLogin, userController.handleGetHealthRecord);
 
 // Get list doc tor working and schedule, price
 router.get(

@@ -1,4 +1,4 @@
-import { staffServices, workServices } from "../../services";
+import { staffServices, userServices, workServices } from "../../services";
 
 class StaffController {
   // [Create or update] /health-exam-schedule
@@ -105,8 +105,10 @@ class StaffController {
       staffId,
       date,
       timeCodeId,
+      checkUpCodeId,
       patientProfileName,
       healthExamScheduleId,
+      bookingId,
     } = req.query;
     try {
       const data = await staffServices.getBooking({
@@ -117,6 +119,8 @@ class StaffController {
         timeCodeId,
         patientProfileName,
         healthExamScheduleId,
+        checkUpCodeId,
+        bookingId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -235,6 +239,95 @@ class StaffController {
       const data = await staffServices.getChartRevenue({
         year,
         staffId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /api/v1/patient
+  async handleCreateOrUpdatePatient(req, res) {
+    const {
+      id,
+      fullName,
+      phone,
+      profession,
+      email,
+      birthDay,
+      gender,
+      cccd,
+      nation,
+      addressCode,
+      copyFromPatientProfileId,
+      staffId,
+    } = req.body;
+    if (
+      !id &&
+      (!fullName ||
+        !phone ||
+        !profession ||
+        !email ||
+        !birthDay ||
+        !gender ||
+        !cccd ||
+        !nation ||
+        !addressCode ||
+        !staffId)
+    ) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+
+    try {
+      const data = await staffServices.createOrUpdatePatient(
+        {
+          id,
+          fullName,
+          phone,
+          profession,
+          email,
+          birthDay,
+          gender,
+          cccd,
+          nation,
+          staffId,
+          addressCode,
+        },
+        { copyFromPatientProfileId }
+      );
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /patient
+  async handleGetPatient(req, res) {
+    const { limit, offset, patientId, name, healthFacilityId, cccd } =
+      req.query;
+
+    try {
+      const data = await staffServices.getPatient({
+        limit,
+        offset,
+        healthFacilityId,
+        patientId,
+        name,
+        cccd,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

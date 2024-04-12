@@ -410,9 +410,7 @@ class UserServices {
         raw: true,
       }
     );
-    console.log("doc-----------------------------\n\n:", doc);
     const count = await this.countBooking(healthExaminationScheduleId);
-    console.log("count-----------------------------\n\n:", count);
 
     if (doc.maxNumber > count) {
       return true;
@@ -531,6 +529,101 @@ class UserServices {
         msg: "Đã có người vừa đặt lịch này, lịch đã đủ người khám. Vui lòng đăng ký lịch khác!",
       };
     }
+  }
+
+  async getBooking({
+    date,
+    healthFacilityId,
+    paymentType,
+    patientProfileId,
+    patientProfileName,
+    userId,
+    limit = 30,
+    offset = 0,
+    status,
+    bookingId,
+  }) {
+    const whereBooking = {};
+    const whereHealthExaminationSchedule = {};
+    const wherePatientProfile = {};
+
+    // get patient profile of user
+    const patientProfileDoc = await db.PatientProfile.findAll({
+      where: { userId },
+      raw: true,
+    });
+
+    if (status) {
+      whereBooking.status = status;
+    }
+    if (bookingId) {
+      whereBooking.id = bookingId;
+    }
+
+    const patientProfileIds = patientProfileDoc.map((p) => p.id);
+    whereBooking.patientProfileId = {
+      [Op.in]: patientProfileIds,
+    };
+
+    const bookingDoc = await db.Booking.findAndCountAll({
+      limit,
+      offset,
+      where: whereBooking,
+      nest: true,
+      raw: true,
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          where: whereHealthExaminationSchedule,
+          include: [
+            {
+              model: db.Working,
+              include: [
+                {
+                  model: db.Staff,
+                  include: [db.Specialist],
+                },
+              ],
+            },
+            {
+              model: db.Code,
+              as: "TimeCode",
+            },
+          ],
+        },
+        {
+          model: db.PatientProfile,
+          where: wherePatientProfile,
+        },
+        {
+          model: db.Code,
+        },
+      ],
+    });
+
+    const dataPromise = bookingDoc.rows.map(async (b) => {
+      const workingId = b.HealthExaminationSchedule.Working.id;
+      // Get working no check price
+      const workRoom = await workServices.getWorkRoomFromWorking({ workingId });
+
+      return {
+        ...b,
+        workRoom,
+      };
+    });
+
+    const result = await Promise.all(dataPromise);
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        rows: result,
+        count: bookingDoc.count,
+        limit: limit,
+        offset: offset,
+      },
+    };
   }
 
   async updateStatusBooking({ status, bookingId, sendEmail = false }) {

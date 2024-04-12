@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import db, { Sequelize } from "../app/models";
 import bcrypt from "bcrypt";
 import workServices from "./workServices";
+import moment from "moment";
 const saltRounds = 10;
 
 class StaffServices {
@@ -119,19 +120,28 @@ class StaffServices {
     timeCodeId,
     patientProfileName,
     healthExamScheduleId,
+    checkUpCodeId,
+    bookingId,
   }) {
     const whereStaff = {};
     staffId && (whereStaff.staffId = staffId);
 
     const whereSchedule = {};
-
+    const whereBooking = {};
     if (date) {
       const dateFilter = moment(date).format("L");
       whereSchedule.date = dateFilter;
     }
 
+    if (bookingId) {
+      whereBooking.id = bookingId;
+    }
+
     if (timeCodeId) {
       whereSchedule.timeCode = timeCodeId;
+    }
+    if (checkUpCodeId) {
+      whereBooking.status = checkUpCodeId;
     }
 
     if (healthExamScheduleId) {
@@ -148,6 +158,7 @@ class StaffServices {
     const docs = await db.Booking.findAndCountAll({
       raw: true,
       offset,
+      where: whereBooking,
       limit,
       order: [["createdAt", "desc"]],
       nest: true,
@@ -159,6 +170,10 @@ class StaffServices {
             {
               model: db.Working,
               where: whereStaff,
+            },
+            {
+              model: db.Code,
+              as: "TimeCode",
             },
           ],
         },
@@ -918,6 +933,233 @@ class StaffServices {
       data: {
         success: array,
         fail: arrayCancel,
+      },
+    };
+  }
+
+  async createOrUpdatePatient(data, option) {
+    const { copyFromPatientProfileId } = option;
+    let patientProfileDocCopy;
+    if (copyFromPatientProfileId) {
+      patientProfileDocCopy = await db.PatientProfile.findOne({
+        where: {
+          id: copyFromPatientProfileId,
+        },
+        raw: true,
+      });
+
+      if (!patientProfileDocCopy) {
+        return {
+          statusCode: 400,
+          msg: `Không tìm thấy hồ sơ bệnh nhận này.`,
+        };
+      }
+    }
+
+    const workingDoc = await workServices.getWorking({
+      doctorId: data.staffId,
+      type: "current",
+    });
+    console.log("\n\nworkingDoc\n\n", workingDoc);
+    // return {
+    //   statusCode: 400,
+    //   msg: "Không tìm thấy lịch công tác của bác sỉ này.",
+    //   data: workingDoc,
+    // };
+
+    if (!workingDoc?.statusCode == 0 && !workingDoc.data.rows[0]) {
+      return {
+        statusCode: 400,
+        msg: "Không tìm thấy lịch công tác của bác sỉ này.",
+      };
+    }
+    const healthFacilityId = workingDoc?.data?.rows?.[0].healthFacilityId;
+    // console.log(
+    //   "\nhealthFacilityId\n\n",
+    //   workingDoc?.data?.rows?.[0].healthFacilityId
+    // );
+
+    // Create a new Account
+    if (!data.id) {
+      //Check create new from cpy
+      let objectHandle = {};
+      if (copyFromPatientProfileId) {
+        objectHandle = {
+          fullName: patientProfileDocCopy.fullName,
+          phone: patientProfileDocCopy.phone,
+          address: patientProfileDocCopy.address,
+          profession: patientProfileDocCopy.profession,
+          email: patientProfileDocCopy.email,
+          birthDay: patientProfileDocCopy.birthDay,
+          gender: patientProfileDocCopy.gender,
+          cccd: patientProfileDocCopy.cccd,
+          nation: patientProfileDocCopy.nation,
+          addressCode: patientProfileDocCopy.addressCode,
+          healthFacilityId: healthFacilityId,
+        };
+      } else {
+        objectHandle = {
+          fullName: data.fullName,
+          phone: data.phone,
+          address: data.address,
+          profession: data.profession,
+          email: data.email,
+          birthDay: data.birthDay,
+          gender: data.gender,
+          cccd: data.cccd,
+          nation: data.nation,
+          addressCode: data.addressCode,
+          healthFacilityId: healthFacilityId,
+        };
+      }
+
+      // Check if the profile has already been created
+      const patientProfileExisted = await db.Patient.findOne({
+        where: {
+          cccd: objectHandle.cccd,
+          healthFacilityId: healthFacilityId,
+        },
+        include: [db.HealthFacility],
+        nest: true,
+        raw: true,
+      });
+
+      if (patientProfileExisted)
+        return {
+          statusCode: 1,
+          msg: `Bệnh nhân này đã tồn tại ở ${patientProfileExisted?.HealthFacility?.name}.`,
+          data: patientProfileExisted,
+        };
+
+      const patientProfileDoc = await db.Patient.create(objectHandle);
+
+      if (patientProfileDoc) {
+        return {
+          statusCode: 0,
+          msg: "Tạo bệnh nhân thành công.",
+          data: patientProfileDoc,
+        };
+      } else {
+        return {
+          statusCode: 4,
+          msg: "Lỗi tạo bệnh nhân.",
+        };
+      }
+    } else {
+      // Update patient profile
+      // Check if the profile has already been created
+
+      let objectHandle = {};
+      if (copyFromPatientProfileId) {
+        objectHandle = {
+          fullName: patientProfileDocCopy.fullName,
+          phone: patientProfileDocCopy.phone,
+          address: patientProfileDocCopy.address,
+          profession: patientProfileDocCopy.profession,
+          email: patientProfileDocCopy.email,
+          birthDay: patientProfileDocCopy.birthDay,
+          gender: patientProfileDocCopy.gender,
+          cccd: patientProfileDocCopy.cccd,
+          nation: patientProfileDocCopy.nation,
+          addressCode: patientProfileDocCopy.addressCode,
+          healthFacilityId: healthFacilityId,
+        };
+      } else {
+        objectHandle = {
+          fullName: data.fullName,
+          phone: data.phone,
+          address: data.address,
+          profession: data.profession,
+          email: data.email,
+          birthDay: data.birthDay,
+          gender: data.gender,
+          cccd: data.cccd,
+          nation: data.nation,
+          addressCode: data.addressCode,
+          healthFacilityId: healthFacilityId,
+        };
+      }
+
+      const patientProfileExisted = await db.Patient.findOne({
+        where: {
+          cccd: objectHandle.cccd,
+          healthFacilityId: healthFacilityId,
+          id: {
+            [Op.not]: data.id,
+          },
+        },
+        nest: true,
+        include: [db.HealthFacility],
+        raw: true,
+      });
+
+      if (patientProfileExisted)
+        return {
+          statusCode: 1,
+          msg: `Bệnh nhân này đã tồn tại ở ${patientProfileExisted?.HealthFacility?.name}.`,
+          data: patientProfileExisted,
+        };
+
+      const countUpdated = await db.Patient.update(objectHandle, {
+        where: {
+          id: data.id,
+        },
+      });
+
+      if (countUpdated[0] > 0) {
+        return {
+          statusCode: 0,
+          msg: "Cập nhật thành công bệnh nhân.",
+        };
+      } else {
+        return {
+          statusCode: 4,
+          msg: "Không tìm thấy bệnh nhân.",
+        };
+      }
+    }
+  }
+
+  // Patient
+  async getPatient({
+    offset = 0,
+    limit = 10,
+    patientId,
+    name,
+    healthFacilityId,
+    cccd,
+  }) {
+    const wherePatient = {};
+
+    if (patientId) {
+      wherePatient.id = patientId;
+    }
+    if (name) {
+      wherePatient.fullName = name;
+    }
+    if (healthFacilityId) {
+      wherePatient.healthFacilityId = healthFacilityId;
+    }
+
+    if (cccd) {
+      wherePatient.cccd = cccd;
+    }
+
+    const docs = await db.Patient.findAndCountAll({
+      raw: true,
+      where: wherePatient,
+      offset,
+      limit,
+      include: [db.HealthFacility],
+      order: [["createdAt", "desc"]],
+      nest: true,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...docs,
       },
     };
   }
