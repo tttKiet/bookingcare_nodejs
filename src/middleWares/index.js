@@ -41,6 +41,7 @@ export async function verifyToken(req, res, next) {
 
 // Forwards Login or not login
 export async function requireLogin(req, res, next) {
+  console.log("req?.userreq?.user", req?.user);
   if (req?.user) {
     next();
   } else {

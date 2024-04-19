@@ -9,7 +9,7 @@ module.exports = {
         defaultValue: Sequelize.UUIDV4,
         type: Sequelize.UUID,
       },
-      hospitalServiceId: {
+      cedicineId: {
         allowNull: false,
         type: Sequelize.UUID,
       },
@@ -17,10 +17,29 @@ module.exports = {
         allowNull: false,
         type: Sequelize.UUID,
       },
-      quantity: {
+      unit: {
+        type: Sequelize.STRING,
+      },
+      morning: {
         type: Sequelize.INTEGER,
       },
-      description: {
+      noon: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+      },
+      afterNoon: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+      },
+      evening: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+      },
+      quantity: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+      },
+      usage: {
         type: Sequelize.STRING,
       },
       createdAt: {

@@ -84,7 +84,7 @@ module.exports = {
         {
           name: "CheckUp",
           key: "CU1",
-          value: "Chờ thanh toán",
+          value: "Đã đặt, chờ thanh toán",
         },
         {
           name: "CheckUp",
@@ -94,11 +94,31 @@ module.exports = {
         {
           name: "CheckUp",
           key: "CU3",
+          value: "Quá hạn",
+        },
+        {
+          name: "HealthRecord",
+          key: "HR1",
+          value: "Chờ khám",
+        },
+        {
+          name: "HealthRecord",
+          key: "HR2",
+          value: "Chờ kết quả dịch vụ",
+        },
+        {
+          name: "HealthRecord",
+          key: "HR3",
+          value: "Đang khám",
+        },
+        {
+          name: "HealthRecord",
+          key: "HR4",
           value: "Đã khám",
         },
         {
-          name: "CheckUp",
-          key: "CU4",
+          name: "HealthRecord",
+          key: "HR5",
           value: "Đã hủy",
         },
       ],

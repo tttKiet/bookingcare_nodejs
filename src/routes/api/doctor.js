@@ -5,6 +5,7 @@ import {
   verifyTokenManager,
   verifyToken,
   requireLogin,
+  localPdfLoader,
 } from "../../middleWares";
 
 // /doctor
@@ -22,8 +23,10 @@ router
   .delete(staffController.handleDeleteHealthExamSchedule);
 
 // booking
-
-router.route("/booking").get(staffController.handleGetBooking);
+router
+  .route("/booking")
+  .get(staffController.handleGetBooking)
+  .post(staffController.handleEditStatusBooking);
 
 // router.get(
 //   "/health-exam-schedule-full-info",
@@ -32,21 +35,44 @@ router.route("/booking").get(staffController.handleGetBooking);
 
 router.get("/working", staffController.handleGetDoctorWorking);
 
+// --------------------
 // Check up
 // router
 //   .route("/check-up")
 //   .get(staffController.handleGet);
 
+router.route("/check-up/health-record/done").post(
+  localPdfLoader.array("pdf", 2),
+  // verifyToken,
+  // requireLogin,
+  staffController.handleEditHealthRecordAndDone
+);
+
 router
   .route("/check-up/health-record")
   .get(staffController.handleGetRecordCheckUp)
-  .patch(verifyToken, requireLogin, staffController.handleEditStatus);
+  .post(verifyToken, requireLogin, staffController.handleCreateHealthRecord)
+  .patch(verifyToken, requireLogin, staffController.handleEditHealthRecord);
 
 // Patient
 router
   .route("/patient")
   .post(staffController.handleCreateOrUpdatePatient)
   .get(staffController.handleGetPatient);
+
+// ServiceDetails
+router
+  .route("/service-details")
+  .post(staffController.handleCreateEditServiceDetails)
+  .get(staffController.handleGetServiceDetails)
+  .delete(staffController.handleDeleteServiceDetails);
+
+// PrescriptionDetails
+router
+  .route("/prescription-details")
+  .post(staffController.handleCreateEditPrescriptionDetails)
+  .get(staffController.handleGetPrescriptionDetails)
+  .delete(staffController.handleDeletePrescriptionDetails);
 
 router.get("/chart/revenue", staffController.handleChartRevenue);
 

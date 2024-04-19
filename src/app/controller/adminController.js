@@ -622,12 +622,6 @@ class AdminController {
   // [GET] /admin/staff/doctor
   async getDoctorWithEmail(req, res) {
     const { limit, offset, email } = req.query;
-    if (!email) {
-      return res.status(400).json({
-        statusCode: 1,
-        msg: "Email chưa được truyền vào.",
-      });
-    }
     try {
       const data = await staffServices.getDoctorWithEmail({
         limit,
@@ -982,19 +976,17 @@ class AdminController {
 
   // Cedicine
   async handleCreateOrEditCedicine(req, res) {
-    const { name, price, id } = req.body;
+    const { name, desc, id } = req.body;
     if (!id && !name) {
       return res
         .status(400)
         .json({ msg: "Tham số cần thiết chưa được truyền vào." });
-    } else if (price === 0) {
-      return res.status(400).json({ msg: "Vui lòng điền đơn giá > 0 vnđ." });
     }
 
     try {
       const response = await adminServices.createOrUpdateCedicine({
+        desc,
         name,
-        price,
         id,
       });
       return res.status(response.statusCode).json(response);

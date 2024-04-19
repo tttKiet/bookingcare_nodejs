@@ -8,13 +8,13 @@ module.exports = {
       [
         {
           id: uuidv4(),
-          fullName: "Admin root website",
+          fullName: "admin",
           email: "admin@gmail.com",
           password:
             "$2b$10$iuH69vrqzsaadhYLa0QPN.PK5ToH6IL7KCOmnbEe.wPiLMSoYuFaK",
           phone: "0967688851",
           gender: 1,
-          address: "Can thor",
+          address: "Ninh Kiều, Cần Thơ",
           roleId: "3becac30-81cc-491e-ad6b-c4c5fa0c6039",
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -126,7 +126,7 @@ module.exports = {
           phone: "0967688850",
           address: "Can thor",
           gender: "female",
-          experience: "2 year fro Miscrosoft",
+          experience: "2 năm cho khoa cứu thương",
           certificate: null,
           roleId: "f1e9f129-da8d-4db0-93ee-46bb422fdebd",
           academicDegreeId: "480f5c52-abbd-4d28-9c9c-99c41feaafcf",

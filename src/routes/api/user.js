@@ -1,6 +1,6 @@
 import { userController } from "../../app/controller";
 import express from "express";
-import { requireLogin } from "../../middleWares";
+import { requireLogin, verifyToken } from "../../middleWares";
 const router = express.Router();
 
 // router.post("/", userController.handleRegister);
@@ -9,7 +9,11 @@ const router = express.Router();
 router
   .route("/patient-profile")
   .get(requireLogin, userController.handleGetPatientProfile)
-  .post(requireLogin, userController.handleCreateOrUpdatePatientProfile)
+  .post(
+    verifyToken,
+    requireLogin,
+    userController.handleCreateOrUpdatePatientProfile
+  )
   .delete(requireLogin, userController.handleDeletePatientProfile);
 
 // Booking and record

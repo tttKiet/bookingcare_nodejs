@@ -3,16 +3,9 @@ import { Op } from "sequelize";
 
 class adminService {
   // Cedicine
-  async createOrUpdateCedicine({ name, price, id }) {
+  async createOrUpdateCedicine({ name, desc, id }) {
     // create a new cedicine
     if (!id) {
-      if (price <= 0) {
-        return {
-          statusCode: 400,
-          msg: "Giá thuốc phải lớn hơn 0!",
-        };
-      }
-
       // check cedicine name existe
       const cedicineExist = await db.Cedicine.findOne({
         where: {
@@ -32,7 +25,7 @@ class adminService {
       // create
       const cedicineDoc = await db.Cedicine.create({
         name,
-        price,
+        desc,
       });
 
       if (cedicineDoc) {
@@ -53,7 +46,7 @@ class adminService {
       const cedicineDoc = await db.Cedicine.update(
         {
           name,
-          price,
+          desc,
         },
         {
           where: {

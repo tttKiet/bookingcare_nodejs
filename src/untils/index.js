@@ -37,6 +37,8 @@ export async function sendEmail({
   receiveEmail,
   srcHtml: filePath,
   replacements,
+  subject = "Lịch đặt mới",
+  fileAttachments = [],
 }) {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -54,22 +56,15 @@ export async function sendEmail({
 
   const source = fs.readFileSync(filePath, "utf-8").toString();
   var template = handlebars.compile(source);
-  // const replacements = {
-  //   name: "Cat",
-  //   time: "22h",
-  //   date: "22/4",
-  //   doctor: "Bui Kiet",
-  //   location: "Ha Noi",
-  // };
   var htmlToSend = template(replacements);
   try {
     const info = await transporter.sendMail({
-      from: '"Health Facility - Schedule ➕" <schedule-sending>', // sender address
+      from: '"BOOKING CARE ➕" <schedule-sending>', // sender address
       to: receiveEmail, // list of receivers
-      subject: "Information",
+      subject: subject,
       html: htmlToSend, // html body
+      attachments: fileAttachments,
     });
-    console.log("info", info);
 
     return Promise.resolve(info);
   } catch (e) {

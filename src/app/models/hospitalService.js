@@ -23,12 +23,16 @@ module.exports = (sequelize, DataTypes) => {
   }
   HospitalService.init(
     {
-      examinationServiceId: {
+      id: {
+        allowNull: false,
         primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
+        type: DataTypes.UUID,
+      },
+      examinationServiceId: {
         type: DataTypes.INTEGER,
       },
       healthFacilityId: {
-        primaryKey: true,
         type: DataTypes.UUID,
       },
       price: {

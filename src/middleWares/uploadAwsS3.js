@@ -24,4 +24,6 @@ const uploadAwsS3 = multer({
   }),
 });
 
-export { uploadAwsS3, s3 };
+const localPdfLoader = multer();
+
+export { uploadAwsS3, s3, localPdfLoader };

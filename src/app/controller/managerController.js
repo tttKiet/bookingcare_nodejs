@@ -26,12 +26,22 @@ class ManagerController {
     }
   }
   async handleGetHospitalServices(req, res) {
-    const { limit, offset, healthFacilityName } = req.query;
+    const {
+      limit,
+      offset,
+      healthFacilityName,
+      id,
+      examinationServiceName,
+      healthFacilityId,
+    } = req.query;
     try {
       const data = await managerServices.getHospitalServices({
         limit,
         offset,
         healthFacilityName,
+        id,
+        examinationServiceName,
+        healthFacilityId,
       });
       return res.status(data.statusCode).json(data);
     } catch (err) {

@@ -3,14 +3,18 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("HospitalServices", {
-      examinationServiceId: {
+      id: {
         allowNull: false,
         primaryKey: true,
+        defaultValue: Sequelize.UUIDV4,
+        type: Sequelize.UUID,
+      },
+      examinationServiceId: {
+        allowNull: false,
         type: Sequelize.UUID,
       },
       healthFacilityId: {
         allowNull: false,
-        primaryKey: true,
         type: Sequelize.UUID,
       },
       price: {

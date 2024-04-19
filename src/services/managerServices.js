@@ -65,12 +65,29 @@ class ManagerServices {
     };
   }
 
-  async getHospitalServices({ offset = 0, limit = 3, name }) {
+  async getHospitalServices({
+    offset = 0,
+    limit = 3,
+    name,
+    id,
+    examinationServiceName,
+    healthFacilityId,
+  }) {
     const whereQuery = {};
+    const whereQueryService = {};
     // name &&
     //   (whereQuery.name = {
     //     [Op.substring]: name,
     //   });
+    if (examinationServiceName) {
+      whereQueryService.name = examinationServiceName;
+    }
+    if (id) {
+      whereQuery.id = id;
+    }
+    if (healthFacilityId) {
+      whereQuery.healthFacilityId = healthFacilityId;
+    }
 
     const docs = await db.HospitalService.findAndCountAll({
       raw: true,
@@ -79,7 +96,13 @@ class ManagerServices {
       where: whereQuery,
       nest: true,
       // order: [["name", "asc"]],
-      include: [db.HealthFacility, db.ExaminationService],
+      include: [
+        db.HealthFacility,
+        {
+          model: db.ExaminationService,
+          where: whereQueryService,
+        },
+      ],
     });
 
     return {

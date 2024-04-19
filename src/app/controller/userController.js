@@ -145,8 +145,7 @@ class UserController {
       });
     }
 
-    const userId = req.user.keyType == "user" ? req.user.id : userIdPost;
-    console.log("\n\nuserId\n\n", userId);
+    const userId = req.user.role.keyType == "user" ? req.user.id : userIdPost;
     if (!userId) {
       return res.status(401).json({
         statusCode: 1,
@@ -234,6 +233,18 @@ class UserController {
         userId,
         paymentType,
       });
+
+      if (paymentType == "hospital") {
+        if (data.statusCode === 200 || data.statusCode === 0) {
+          return res.status(200).json({
+            ...data,
+          });
+        } else {
+          return res.status(data.statusCode).json({
+            ...data,
+          });
+        }
+      }
       req.dataBooking = data;
       next();
     } catch (err) {

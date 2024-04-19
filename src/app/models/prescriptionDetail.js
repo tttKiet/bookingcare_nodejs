@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       PrescriptionDetail.belongsTo(models.HealthRecord, {
-        foreignKey: "heatthRecordId",
+        foreignKey: "healthRecordId",
       });
     }
   }
@@ -32,9 +32,28 @@ module.exports = (sequelize, DataTypes) => {
       healthRecordId: {
         type: DataTypes.UUID,
       },
+      unit: {
+        type: DataTypes.INTEGER,
+      },
+      morning: {
+        type: DataTypes.INTEGER,
+      },
+      noon: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
+      afterNoon: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
+      evening: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
       quantity: {
         type: DataTypes.INTEGER,
       },
+      usage: DataTypes.STRING,
     },
     {
       sequelize,

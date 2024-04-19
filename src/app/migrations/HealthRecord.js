@@ -13,12 +13,27 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING,
       },
+      diagnosis: {
+        type: Sequelize.STRING,
+      },
+      note: {
+        type: Sequelize.STRING,
+      },
       bookingId: {
         allowNull: false,
         type: Sequelize.UUID,
       },
-      orderNumber: {
-        type: Sequelize.INTEGER,
+      patientId: {
+        allowNull: false,
+        type: Sequelize.UUID,
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
       },
     });
   },

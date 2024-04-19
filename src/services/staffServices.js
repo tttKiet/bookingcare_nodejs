@@ -1,10 +1,13 @@
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
 import db, { Sequelize } from "../app/models";
 import bcrypt from "bcrypt";
 import workServices from "./workServices";
 import moment from "moment";
+import { raw } from "express";
 const saltRounds = 10;
-
+import { sendEmail } from "../untils";
+import * as fs from "fs";
+import * as path from "path";
 class StaffServices {
   // AcademicDegree
   async getAcademicDegree({ offset = 0, limit = 100 }) {
@@ -170,6 +173,7 @@ class StaffServices {
             {
               model: db.Working,
               where: whereStaff,
+              include: [db.HealthFacility, db.Staff],
             },
             {
               model: db.Code,
@@ -187,13 +191,37 @@ class StaffServices {
       ],
     });
 
+    const promiseArray = docs.rows.map(async (d) => {
+      const healthRecordDoc = await db.HealthRecord.findOne({
+        where: {
+          bookingId: d?.id,
+        },
+        include: [
+          {
+            model: db.Code,
+            as: "status",
+          },
+          db.Patient,
+        ],
+        nest: true,
+        raw: true,
+      });
+
+      return {
+        booking: d,
+        healthRecord: healthRecordDoc || null,
+      };
+    });
+    const data = await Promise.all(promiseArray);
+
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
       data: {
-        ...docs,
+        rows: data,
         limit: limit,
         offset: offset,
+        count: docs.count,
       },
     };
   }
@@ -686,6 +714,8 @@ class StaffServices {
       raw: true,
       offset,
       limit,
+      order: [["createdAt", "desc"]],
+      nest: true,
       where: whereQueryWorking,
       include: [
         {
@@ -694,8 +724,6 @@ class StaffServices {
           include: [db.AcademicDegree, db.Specialist],
         },
       ],
-      order: [["createdAt", "desc"]],
-      nest: true,
     });
 
     return {
@@ -710,44 +738,169 @@ class StaffServices {
   }
 
   // [GET] /check-up/health-record
-  async getRecordCheckUp({ date, staffId }) {
-    const workingDoctor = await this.getDoctorWorking({ doctorId: staffId });
-    const workingId = workingDoctor?.data?.rows?.[0].id;
+  async getRecordCheckUp({
+    date,
+    staffId,
+    id,
+    bookingId,
+    limit = 10,
+    offset = 0,
+  }) {
+    // chua check co staffId
+    if (staffId) {
+      const workingDoctor = await this.getDoctorWorking({ doctorId: staffId });
+      const workingId = workingDoctor?.data?.rows?.[0].id;
 
-    const results = {};
-    if (workingId) {
-      // Check where check up
-      const workRoom = await workServices.getWorkRoomFromWorking({ workingId });
-      if (workRoom) {
-        results.workRoom = workRoom;
-        const healthExamSchedules = await workServices.getHealthExamSchedule({
+      const results = {};
+      if (workingId) {
+        // Check where check up
+        const workRoom = await workServices.getWorkRoomFromWorking({
           workingId,
-          date: date,
-          raw: true,
         });
-        // asdsa
-        results.schedules = healthExamSchedules.data;
-        return {
-          statusCode: 0,
-          msg: "Lấy thành công.",
-          data: results,
-        };
+        if (workRoom) {
+          results.workRoom = workRoom;
+          const healthExamSchedules = await workServices.getHealthExamSchedule({
+            workingId,
+            date: date,
+            raw: true,
+          });
+          // asdsa
+          results.schedules = healthExamSchedules.data;
+          return {
+            statusCode: 0,
+            msg: "Lấy thành công.",
+            data: results,
+          };
+        } else {
+          return {
+            statusCode: 2,
+            msg: "Không tìm nơi khám bệnh",
+          };
+        }
       } else {
         return {
-          statusCode: 2,
-          msg: "Không tìm nơi khám bệnh",
+          statusCode: 1,
+          msg: "Không tìm thấy bác sỉ",
         };
       }
+    }
+
+    const whereHealthRecord = {};
+    if (id) {
+      whereHealthRecord.id = id;
+    }
+    if (bookingId) {
+      whereHealthRecord.bookingId = bookingId;
+    }
+
+    // get health-record
+    const healthRecord = await db.HealthRecord.findAndCountAll({
+      raw: true,
+      offset,
+
+      limit,
+      where: whereHealthRecord,
+      order: [["createdAt", "desc"]],
+      nest: true,
+      include: [db.Patient, db.Booking],
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...healthRecord,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  // [POST] /check-up/health-record
+  async createHealthRecord({ bookingId, patientId }) {
+    // check healthRecord
+    const healthRecordExist = await db.HealthRecord.findOne({
+      where: {
+        bookingId: bookingId,
+      },
+      raw: true,
+    });
+
+    if (healthRecordExist) {
+      return {
+        statusCode: 404,
+        msg: `Lịch đã được tạo.`,
+        data: healthRecordExist,
+      };
+    }
+
+    // check booking
+    const bookingDoc = await db.Booking.findOne({
+      where: {
+        id: bookingId,
+      },
+      raw: true,
+    });
+
+    if (!bookingDoc) {
+      return {
+        statusCode: 404,
+        msg: `Không tìm thấy lịch hẹn này ${bookingId}.`,
+      };
+    }
+
+    // check patient
+    const patientDoc = await db.Patient.findOne({
+      where: {
+        id: patientId,
+      },
+      raw: true,
+    });
+
+    if (!patientDoc) {
+      return {
+        statusCode: 404,
+        msg: `Không tìm thấy bệnh nhân này ${patientId}.`,
+      };
+    }
+
+    // check code
+    const codeDoc = await db.Code.findOne({
+      where: {
+        name: "HealthRecord",
+      },
+    });
+
+    if (!codeDoc) {
+      return {
+        statusCode: 2,
+        msg: `Không tin thấy trạng thái - HR1.`,
+      };
+    }
+
+    // create health-record
+    const doc = await db.HealthRecord.create({
+      bookingId,
+      patientId,
+      statusCode: "HR1",
+    });
+
+    if (doc) {
+      return {
+        statusCode: 0,
+        msg: "Tạo phiếu thành công.",
+        data: doc,
+      };
     } else {
       return {
         statusCode: 1,
-        msg: "Không tìm thấy bác sỉ",
+        msg: "Đã có lỗi xảy ra, vui lòng thử lại!",
       };
     }
   }
 
-  // [PATCH] /check-up/health-record
-  async editStatusHealthRecord({ statusId, healthRecordId }) {
+  // [POST] /check-up/health-record
+  async editStatusBooking({ statusId, bookingId }) {
     const codeDoc = await db.Code.findOne({
       where: {
         key: statusId,
@@ -761,9 +914,51 @@ class StaffServices {
         msg: `Không tin thấy trạng thái ${statusId}.`,
       };
     }
+    const doc = await db.Booking.update(
+      {
+        status: statusId,
+      },
+      {
+        where: {
+          id: bookingId,
+        },
+      }
+    );
+
+    return {
+      statusCode: 0,
+      msg: "Cập nhật thành công.",
+    };
+  }
+
+  // [PATCH] /check-up/health-record
+  async editHealthRecord({ statusId, healthRecordId, diagnosis, note }) {
+    const dataUpdate = {};
+    if (statusId) {
+      const codeDoc = await db.Code.findOne({
+        where: {
+          key: statusId,
+        },
+        raw: true,
+      });
+
+      if (!codeDoc) {
+        return {
+          statusCode: 2,
+          msg: `Không tin thấy trạng thái ${statusId}.`,
+        };
+      }
+      dataUpdate.statusCode = statusId;
+    }
+    if (diagnosis) {
+      dataUpdate.diagnosis = diagnosis;
+    }
+    if (note) {
+      dataUpdate.note = note;
+    }
     const doc = await db.HealthRecord.update(
       {
-        statusCode: statusId,
+        ...dataUpdate,
       },
       {
         where: {
@@ -775,12 +970,145 @@ class StaffServices {
     if (doc[0] > 0) {
       return {
         statusCode: 0,
-        msg: "Cập nhật thành công.",
+        msg: diagnosis || note ? "Đã lưu phiếu" : "Cập nhật thành công.",
       };
     } else {
       return {
-        statusCode: 1,
-        msg: "Cập nhật thất bại.",
+        statusCode: 0,
+        msg: diagnosis || note ? "Đã lưu phiếu" : "Cập nhật thành công.",
+      };
+    }
+  }
+
+  // [POST] /check-up/health-record/done
+  async editHealthRecordDone({
+    id,
+    diagnosis,
+    note,
+    emailDestination,
+    sendPrescriptionDetails,
+    sendhHospitalService,
+    files,
+  }) {
+    const dataUpdate = {};
+    const codeDoc = await db.Code.findOne({
+      where: {
+        key: "HR4",
+      },
+      raw: true,
+    });
+
+    if (!codeDoc) {
+      return {
+        statusCode: 2,
+        msg: `Không tin thấy trạng thái [HR4] đã khám.`,
+      };
+    }
+
+    dataUpdate.statusCode = "HR4";
+    if (diagnosis) {
+      dataUpdate.diagnosis = diagnosis;
+    }
+    console.log("\n\n\nsdsadsa---");
+    if (note) {
+      dataUpdate.note = note;
+    }
+    await db.HealthRecord.update(
+      {
+        ...dataUpdate,
+      },
+      {
+        where: {
+          id,
+        },
+      }
+    );
+
+    // healthrecord
+    const healthRecordDoc = await db.HealthRecord.findOne({
+      where: {
+        id,
+      },
+      raw: true,
+    });
+    if (!healthRecordDoc) {
+      return {
+        statusCode: 500,
+        msg: "Lỗi lấy thông tin vui lòng thử lại.",
+      };
+    }
+
+    // get healthRecord
+    const healthRecord = await this.getBooking({
+      bookingId: healthRecordDoc.bookingId,
+    });
+    // send email
+    const infoHealthRecord = healthRecord?.data?.rows?.[0];
+
+    if (!infoHealthRecord) {
+      return {
+        statusCode: 500,
+        msg: "Lỗi lấy thông tin vui lòng thử lại.",
+      };
+    }
+    const workRoom = await workServices.getWorkRoomFromWorking({
+      workingId: infoHealthRecord?.booking?.HealthExaminationSchedule.workingId,
+    });
+    // const replacements = {
+    //   name: bookingFilter.PatientProfile.fullName,
+    //   time: bookingFilter.HealthExaminationSchedule.TimeCode.value,
+    //   date: moment(bookingFilter.HealthExaminationSchedule.date).format("L"),
+    //   doctor: bookingFilter.HealthExaminationSchedule.Working.Staff.fullName,
+    //   location: `${bookingFilter.HealthExaminationSchedule.Working.HealthFacility.name}`,
+    // };\
+    try {
+      const title =
+        "KẾT QUẢ KHÁM BỆNH Ở " +
+        infoHealthRecord?.booking?.HealthExaminationSchedule?.Working?.HealthFacility?.name
+          ?.trim()
+          .toLocaleUpperCase();
+      const replacements = {
+        name: infoHealthRecord?.booking?.PatientProfile?.fullName
+          ?.trim()
+          .toLocaleUpperCase(),
+        date: moment(
+          new Date(infoHealthRecord?.booking?.HealthExaminationSchedule?.date)
+        ).format("L"),
+        time: infoHealthRecord?.booking?.HealthExaminationSchedule?.TimeCode
+          ?.value,
+        doctor:
+          infoHealthRecord?.booking?.HealthExaminationSchedule?.Working?.Staff
+            ?.fullName,
+        room: workRoom?.ClinicRoomRoomNumber,
+        location:
+          infoHealthRecord?.booking?.HealthExaminationSchedule?.Working
+            ?.HealthFacility?.address,
+        diagnosis: infoHealthRecord?.healthRecord?.diagnosis,
+        note: infoHealthRecord?.healthRecord?.note,
+      };
+
+      const __dirname = path.resolve();
+      const srcHtml = "/src/views/template/email_result_booking.html";
+      const filePath = path.join(__dirname, srcHtml);
+      const filePdfs = files.map((f) => ({
+        filename: f.originalname,
+        content: f.buffer,
+      }));
+
+      const data = await sendEmail({
+        subject: title,
+        receiveEmail: emailDestination || infoHealthRecord?.Patient?.email,
+        replacements: replacements,
+        srcHtml: filePath,
+        fileAttachments: filePdfs,
+      });
+
+      return { statusCode: 200, msg: "Hoàn tất khám", data: data };
+    } catch (error) {
+      console.log(error);
+      return {
+        statusCode: 500,
+        msg: error?.message || "Lỗi lấy thông tin vui lòng thử lại.",
       };
     }
   }
@@ -1161,6 +1489,342 @@ class StaffServices {
       data: {
         ...docs,
       },
+    };
+  }
+
+  // Service Details
+  async createOrUpdateServiceDetails({
+    id,
+    descriptionResult,
+    healthRecordId,
+    hospitalServiceId,
+  }) {
+    // create
+    if (!id) {
+      // check data valid
+
+      const [healthRecordDoc, hospitalServicesDoc] = await Promise.all([
+        db.HealthRecord.findOne({
+          where: {
+            id: healthRecordId,
+          },
+          raw: true,
+        }),
+        db.HospitalService.findOne({
+          where: {
+            id: hospitalServiceId,
+          },
+          raw: true,
+        }),
+      ]);
+
+      if (!healthRecordDoc || !hospitalServicesDoc) {
+        return {
+          statusCode: 404,
+          msg: "Không tìm phiếu khám hoặc dịch vụ ở bệnh viện này.",
+        };
+      }
+
+      // check existed
+      const serviceDetailsExisted = await db.ServiceDetail.findOne({
+        where: {
+          healthRecordId,
+          hospitalServiceId,
+        },
+        raw: true,
+      });
+
+      if (serviceDetailsExisted) {
+        return {
+          statusCode: 404,
+          msg: "Dịch vụ đã thêm.",
+          data: serviceDetailsExisted,
+        };
+      }
+
+      // create
+      const serviceDetailsDoc = await db.ServiceDetail.create({
+        healthRecordId,
+        hospitalServiceId,
+      });
+
+      if (serviceDetailsDoc) {
+        return {
+          statusCode: 200,
+          msg: "Thêm dịch vụ thành công.",
+          data: serviceDetailsDoc,
+        };
+      }
+
+      // update
+    } else {
+      const serviceDetailsUpdate = await db.ServiceDetail.update(
+        {
+          descriptionResult,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+      if (serviceDetailsUpdate[0] > 0) {
+        return {
+          statusCode: 0,
+          msg: "Cập nhật kết quả thành công.",
+        };
+      } else {
+        return {
+          statusCode: 400,
+          msg: "Không tìm thấy dịch vụ.",
+        };
+      }
+    }
+
+    return {
+      statusCode: 404,
+      msg: "Đã có lỗi xảy ra, vui lòng thử lại.",
+    };
+  }
+
+  async getServiceDetails({ id, healthRecordId, hospitalServiceId }) {
+    const where = {};
+    if (id) {
+      where.id = id;
+    }
+    if (healthRecordId) {
+      where.healthRecordId = healthRecordId;
+    }
+    if (hospitalServiceId) {
+      where.hospitalServiceId = hospitalServiceId;
+    }
+
+    const docs = await db.ServiceDetail.findAll({
+      raw: true,
+      where: where,
+      include: [
+        db.HealthRecord,
+        {
+          model: db.HospitalService,
+          include: [db.ExaminationService],
+        },
+      ],
+      order: [["createdAt", "desc"]],
+      nest: true,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: docs,
+    };
+  }
+
+  async deleteServiceDetails({ id }) {
+    const data = await db.ServiceDetail.destroy({
+      where: {
+        id,
+      },
+    });
+    if (data > 0) {
+      return {
+        statusCode: 0,
+        msg: "Xóa thành công.",
+        data: data,
+      };
+    }
+    return {
+      statusCode: 2,
+      msg: "Tài liệu này chưa được xóa hoặc không tồn tại.",
+    };
+  }
+
+  // Prescription Details
+  async createOrUpdatePrescriptionDetails({
+    id,
+    cedicineId,
+    healthRecordId,
+    quantity,
+    usage,
+    unit,
+    morning,
+    noon,
+    afterNoon,
+    evening,
+  }) {
+    // create
+    if (!id) {
+      // check data valid
+      const [cedicineDoc, healthRecordDoc] = await Promise.all([
+        db.Cedicine.findOne({
+          where: {
+            id: cedicineId,
+          },
+          raw: true,
+        }),
+        db.HealthRecord.findOne({
+          where: {
+            id: healthRecordId,
+          },
+          raw: true,
+        }),
+      ]);
+
+      if (!cedicineDoc || !healthRecordDoc) {
+        return {
+          statusCode: 404,
+          msg: "Không tìm phiếu khám hoặc thuốc.",
+        };
+      }
+
+      // check existed
+      const serviceDetailsExisted = await db.PrescriptionDetail.findOne({
+        where: {
+          cedicineId,
+          healthRecordId,
+        },
+        raw: true,
+      });
+
+      if (serviceDetailsExisted) {
+        return {
+          statusCode: 404,
+          msg: "Thuốc đã thêm.",
+          data: serviceDetailsExisted,
+        };
+      }
+
+      // create
+      const serviceDetailsDoc = await db.PrescriptionDetail.create({
+        cedicineId,
+        healthRecordId,
+        quantity,
+        usage,
+        unit,
+        morning,
+        noon,
+        afterNoon,
+        evening,
+      });
+
+      if (serviceDetailsDoc) {
+        return {
+          statusCode: 200,
+          msg: "Thêm thuốc thành công.",
+          data: serviceDetailsDoc,
+        };
+      }
+
+      // update
+    } else {
+      // check existed
+      const serviceDetailsExisted = await db.PrescriptionDetail.findOne({
+        where: {
+          cedicineId,
+          healthRecordId,
+          id: {
+            [Op.not]: id,
+          },
+        },
+        include: [db.Cedicine],
+        raw: true,
+        nest: true,
+      });
+
+      if (serviceDetailsExisted) {
+        return {
+          statusCode: 201,
+          msg:
+            serviceDetailsExisted.Cedicine.name +
+            " đã được thêm vào, hãy cập nhật thuốc này.",
+        };
+      }
+
+      const serviceDetailsUpdate = await db.PrescriptionDetail.update(
+        {
+          cedicineId,
+          healthRecordId,
+          quantity,
+          usage,
+          unit,
+          morning,
+          noon,
+          afterNoon,
+          evening,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+      if (serviceDetailsUpdate[0] > 0) {
+        return {
+          statusCode: 200,
+          msg: "Đã cập nhật đơn thuốc.",
+        };
+      } else {
+        return {
+          statusCode: 400,
+          msg: "Không tìm thấy loại thuốc này.",
+        };
+      }
+    }
+
+    return {
+      statusCode: 404,
+      msg: "Đã có lỗi xảy ra, vui lòng thử lại.",
+    };
+  }
+
+  async getPrescriptionDetails({ id, healthRecordId, cedicineId }) {
+    const where = {};
+    if (id) {
+      where.id = id;
+    }
+    if (healthRecordId) {
+      where.healthRecordId = healthRecordId;
+    }
+    if (cedicineId) {
+      where.cedicineId = cedicineId;
+    }
+
+    const docs = await db.PrescriptionDetail.findAll({
+      raw: true,
+      where: where,
+      include: [
+        db.HealthRecord,
+        {
+          model: db.Cedicine,
+        },
+      ],
+      order: [["createdAt", "desc"]],
+      nest: true,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: docs,
+    };
+  }
+
+  async deletePrescriptionDetails({ id }) {
+    const data = await db.PrescriptionDetail.destroy({
+      where: {
+        id,
+      },
+    });
+    if (data > 0) {
+      return {
+        statusCode: 0,
+        msg: "Xóa thành công.",
+        data: data,
+      };
+    }
+    return {
+      statusCode: 2,
+      msg: "Tài liệu này chưa được xóa hoặc không tồn tại.",
     };
   }
 }

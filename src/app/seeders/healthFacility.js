@@ -8,8 +8,8 @@ module.exports = {
       [
         {
           id: "cbac52e0-bb9d-4ab0-9ef5-0c77c0451067",
-          images: ["https://bookingcare-clound.s3.amazonaws.com/1694845023813"],
-          name: "Bệnh viện thành phố Hcm",
+          images: ["https://bookingcare-clound.s3.amazonaws.com/1713188654211"],
+          name: "Bệnh viện Bệnh nhiệt đới TP.HCM",
           address: "TP Hcm",
           phone: "0123456788",
           email: "hcm@gmail.com",

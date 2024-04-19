@@ -17,9 +17,6 @@ module.exports = {
         allowNull: false,
         type: Sequelize.UUID,
       },
-      status: {
-        type: Sequelize.BOOLEAN,
-      },
       descriptionResult: {
         type: Sequelize.STRING,
       },

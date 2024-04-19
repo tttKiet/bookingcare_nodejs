@@ -43,15 +43,23 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         type: DataTypes.UUID,
       },
+      patientId: {
+        allowNull: false,
+        type: DataTypes.UUID,
+      },
       statusCode: {
         type: DataTypes.STRING,
       },
-      orderNumber: DataTypes.INTEGER,
+      diagnosis: {
+        type: DataTypes.STRING,
+      },
+      note: {
+        type: DataTypes.STRING,
+      },
     },
     {
       sequelize,
       modelName: "HealthRecord",
-      timestamps: false,
     }
   );
   return HealthRecord;

@@ -13,8 +13,8 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "hospitalServiceId",
       });
 
-      ServiceDetail.hasMany(models.HealthRecord, {
-        foreignKey: "heatthRecordId",
+      ServiceDetail.belongsTo(models.HealthRecord, {
+        foreignKey: "healthRecordId",
       });
     }
   }
@@ -31,9 +31,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       healthRecordId: {
         type: DataTypes.UUID,
-      },
-      status: {
-        type: DataTypes.BOOLEAN,
       },
       descriptionResult: {
         type: DataTypes.BOOLEAN,

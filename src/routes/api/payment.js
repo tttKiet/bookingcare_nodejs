@@ -1,15 +1,5 @@
 import express from "express";
-import {
-  managerController,
-  staffController,
-  userController,
-} from "../../app/controller";
-import {
-  verifyTokenAdmin,
-  verifyTokenManager,
-  verifyToken,
-  requireLogin,
-} from "../../middleWares";
+import { userController } from "../../app/controller";
 import paymentController from "../../app/controller/paymentController";
 
 // /payment
@@ -24,7 +14,7 @@ router.post(
 
 router.get("/vnpay/vnpay_return", paymentController.vnpay_return);
 
-// only ssl
+// only ssl https
 router.get("/vnpay/vnpay_ipn", paymentController.vnpay_ipn);
 
 export default router;
