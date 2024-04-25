@@ -17,6 +17,10 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING,
       },
+      addressCode: {
+        allowNull: false,
+        type: Sequelize.ARRAY(Sequelize.STRING),
+      },
       phone: {
         allowNull: false,
         type: Sequelize.STRING,

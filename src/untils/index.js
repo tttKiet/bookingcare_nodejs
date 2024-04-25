@@ -4,6 +4,7 @@ import "dotenv/config";
 import handlebars from "handlebars";
 import * as fs from "fs";
 import * as path from "path";
+import { Op, Sequelize } from "sequelize";
 
 export function deleteImagesFromS3(keys) {
   return s3
@@ -70,4 +71,27 @@ export async function sendEmail({
   } catch (e) {
     return Promise.reject(e);
   }
+}
+
+export function removeAccentsAndLowerCase(str) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function searchLikeDeep(dbName, colName, value) {
+  console.log();
+  const wordsToSearch = removeAccentsAndLowerCase(value)
+    .split(/\s+/)
+    .filter(Boolean);
+  const wordConditions = wordsToSearch.map((word) =>
+    Sequelize.where(
+      Sequelize.fn("unaccent", Sequelize.col(`${dbName}.${colName}`)),
+      {
+        [Op.iLike]: Sequelize.fn("unaccent", "%" + word + "%"),
+      }
+    )
+  );
+  return { [Op.and]: wordConditions };
 }

@@ -125,8 +125,25 @@ class StaffServices {
     healthExamScheduleId,
     checkUpCodeId,
     bookingId,
+    staffIdLogin,
   }) {
+    let healthFacilityId;
+    if (staffIdLogin) {
+      const workingDoc = await workServices.getWorking({
+        doctorId: staffIdLogin,
+      });
+
+      if (!workingDoc?.statusCode == 0 && !workingDoc?.data?.rows[0]) {
+        return {
+          statusCode: 400,
+          msg: "Không tìm thấy công tác của của nhân viên này.",
+        };
+      }
+      healthFacilityId = workingDoc?.data?.rows?.[0]?.healthFacilityId;
+    }
+
     const whereStaff = {};
+    const whereHealthFacility = {};
     staffId && (whereStaff.staffId = staffId);
 
     const whereSchedule = {};
@@ -134,6 +151,10 @@ class StaffServices {
     if (date) {
       const dateFilter = moment(date).format("L");
       whereSchedule.date = dateFilter;
+    }
+
+    if (healthFacilityId) {
+      whereHealthFacility.id = healthFacilityId;
     }
 
     if (bookingId) {
@@ -173,7 +194,13 @@ class StaffServices {
             {
               model: db.Working,
               where: whereStaff,
-              include: [db.HealthFacility, db.Staff],
+              include: [
+                {
+                  model: db.HealthFacility,
+                  where: whereHealthFacility,
+                },
+                db.Staff,
+              ],
             },
             {
               model: db.Code,
@@ -184,6 +211,7 @@ class StaffServices {
         {
           model: db.PatientProfile,
           where: wherePatientProfile,
+          include: [db.User],
         },
         {
           model: db.Code,
@@ -313,8 +341,26 @@ class StaffServices {
   }
 
   // Staff
-  async getStaff({ offset = 0, limit = 10, email, fullName, type = "doctor" }) {
+  async getStaff({ offset = 0, limit = 10, email, fullName, type }) {
     const whereQuery = {};
+    const whereRole = {};
+    if (type)
+      whereRole.keyType = {
+        [Op.and]: [
+          {
+            [Op.ne]: "admin",
+          },
+          {
+            [Op.eq]: type,
+          },
+        ],
+      };
+    else {
+      whereRole.keyType = {
+        [Op.ne]: "admin",
+      };
+    }
+
     email &&
       (whereQuery.email = {
         [Op.substring]: email,
@@ -334,18 +380,7 @@ class StaffServices {
       include: [
         {
           model: db.Role,
-          where: {
-            keyType: {
-              [Op.and]: [
-                {
-                  [Op.ne]: "admin",
-                },
-                {
-                  [Op.eq]: type || "doctor",
-                },
-              ],
-            },
-          },
+          where: whereRole,
         },
         {
           model: db.AcademicDegree,
@@ -1264,7 +1299,25 @@ class StaffServices {
       },
     };
   }
-
+  async deletePatient({ id }) {
+    // console.log("\n\nid\n\n", id);
+    const data = await db.Patient.destroy({
+      where: {
+        id,
+      },
+    });
+    if (data > 0) {
+      return {
+        statusCode: 0,
+        msg: "Xóa thành công.",
+        data: data,
+      };
+    }
+    return {
+      statusCode: 2,
+      msg: "Tài liệu này chưa được xóa hoặc không tồn tại.",
+    };
+  }
   async createOrUpdatePatient(data, option) {
     const { copyFromPatientProfileId } = option;
     let patientProfileDocCopy;
@@ -1286,26 +1339,15 @@ class StaffServices {
 
     const workingDoc = await workServices.getWorking({
       doctorId: data.staffId,
-      type: "current",
     });
-    console.log("\n\nworkingDoc\n\n", workingDoc);
-    // return {
-    //   statusCode: 400,
-    //   msg: "Không tìm thấy lịch công tác của bác sỉ này.",
-    //   data: workingDoc,
-    // };
 
     if (!workingDoc?.statusCode == 0 && !workingDoc.data.rows[0]) {
       return {
         statusCode: 400,
-        msg: "Không tìm thấy lịch công tác của bác sỉ này.",
+        msg: "Không tìm thấy công tác của của nhân viên này.",
       };
     }
     const healthFacilityId = workingDoc?.data?.rows?.[0].healthFacilityId;
-    // console.log(
-    //   "\nhealthFacilityId\n\n",
-    //   workingDoc?.data?.rows?.[0].healthFacilityId
-    // );
 
     // Create a new Account
     if (!data.id) {
@@ -1456,7 +1498,22 @@ class StaffServices {
     name,
     healthFacilityId,
     cccd,
+    staffId,
   }) {
+    if (staffId) {
+      const workingDoc = await workServices.getWorking({
+        doctorId: staffId,
+      });
+
+      if (!workingDoc?.statusCode == 0 && !workingDoc?.data?.rows[0]) {
+        return {
+          statusCode: 400,
+          msg: "Không tìm thấy công tác của của nhân viên này.",
+        };
+      }
+      healthFacilityId = workingDoc?.data?.rows?.[0].healthFacilityId;
+    }
+
     const wherePatient = {};
 
     if (patientId) {

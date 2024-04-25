@@ -1,7 +1,7 @@
 import { Op } from "sequelize";
-import db from "../app/models";
+import db, { sequelize, Sequelize } from "../app/models";
 import { v4 as uuidv4 } from "uuid";
-import { deleteImagesFromS3 } from "../untils";
+import { deleteImagesFromS3, searchLikeDeep } from "../untils";
 
 class healthFacilitiesServices {
   // create type health facility
@@ -138,6 +138,7 @@ class healthFacilitiesServices {
     address,
     phone,
     email,
+    addressCode,
     typeHealthFacilityId,
     fileUrls,
   }) {
@@ -153,18 +154,20 @@ class healthFacilitiesServices {
         msg: "Loại bệnh viện này không tồn tại.",
       };
     }
-    const typeHealthFacilityDoc = await db.HealthFacility.create({
+    const doc = await db.HealthFacility.create({
       name,
       address,
       phone,
       email,
       typeHealthFacilityId,
       images: fileUrls,
+      addressCode: JSON.parse(addressCode),
     });
-    if (typeHealthFacilityDoc) {
+    if (doc) {
       return {
         statusCode: 0,
         msg: "Tạo thành công.",
+        data: doc,
       };
     }
 
@@ -208,62 +211,85 @@ class healthFacilitiesServices {
   }
 
   // Get All Health Facilities
+
+  // if (name) {
+  //   const wordsToSearch = removeAccentsAndLowerCase(name)
+  //     .split(/\s+/)
+  //     .filter(Boolean);
+  //   const wordConditions = wordsToSearch.map((word) => ({
+  //     [Op.like]: %${word}%,
+  //   }));
+
+  //   whereCondition.name = { [Op.and]: wordConditions };
+  // }
+
   async getHealthFacilities({
     limit = 10,
     offset = 0,
     name,
     address,
-    typeHealthFacility,
     typeHealthFacilityId,
-    searchNameOrEmail,
+    email,
     id,
+    ward,
+    district,
+    province,
   }) {
-    let whereQuery = {};
+    let whereHealth = {};
+    let whereSumHealth = {};
     const whereType = {};
 
-    typeHealthFacilityId?.length > 0 &&
-      (whereType.id = {
-        [Op.in]: typeHealthFacilityId,
-      });
+    //type
+    if (typeHealthFacilityId) {
+      whereType.id = typeHealthFacilityId;
+    }
 
-    name &&
-      (whereQuery.name = {
-        [Op.substring]: name,
-      });
-    id && (whereQuery.id = id);
-    console.log("searchNameOrEmail----", searchNameOrEmail);
-    searchNameOrEmail &&
-      (whereQuery = {
-        [Op.or]: [
-          {
-            name: {
-              [Op.substring]: searchNameOrEmail,
-            },
-          },
-          {
-            email: {
-              [Op.substring]: searchNameOrEmail,
-            },
-          },
-        ],
-      });
+    // health
+    if (name) {
+      whereHealth.name = searchLikeDeep("HealthFacility", "name", name);
 
-    address &&
-      (whereQuery.address = {
+      // searchLikeDeep("name", name);
+    }
+
+    if (email) {
+      whereHealth.email = {
+        [Op.substring]: email,
+      };
+    }
+
+    if (id) {
+      whereHealth.id = id;
+    }
+
+    if (address) {
+      whereHealth.address = {
         [Op.substring]: address,
-      });
+      };
+    }
+    console.log("whereSumHealth", whereSumHealth);
+    let arrayAddressFilter = [];
 
-    typeHealthFacility && (whereType["name"] = typeHealthFacility);
+    if (ward) {
+      arrayAddressFilter = [ward, district, province];
+    } else if (district) {
+      arrayAddressFilter = [district, province];
+    } else if (province) {
+      arrayAddressFilter = [province];
+    }
+    if (arrayAddressFilter.length > 0)
+      whereHealth.addressCode = {
+        [Op.contains]: arrayAddressFilter,
+      };
     const healthFacilitiesDocs = await db.HealthFacility.findAndCountAll({
       raw: true,
       offset,
       limit,
       nest: true,
-      where: whereQuery,
+      where: whereHealth,
       include: [
         {
           model: db.TypeHealthFacility,
-          attributes: ["name"],
+          // attributes: ["name"],
           where: whereType,
         },
       ],
@@ -283,6 +309,7 @@ class healthFacilitiesServices {
     address,
     phone,
     email,
+    addressCode,
     typeHealthFacilityId,
     fileUrls,
     imageOldKeys, // Image no change
@@ -335,6 +362,7 @@ class healthFacilitiesServices {
       name,
       address,
       phone,
+      addressCode: JSON.parse(addressCode),
       email,
       typeHealthFacilityId,
       images: [...imgNoChange, ...fileUrls],

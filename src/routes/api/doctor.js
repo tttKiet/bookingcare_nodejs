@@ -25,8 +25,8 @@ router
 // booking
 router
   .route("/booking")
-  .get(staffController.handleGetBooking)
-  .post(staffController.handleEditStatusBooking);
+  .get(verifyToken, requireLogin, staffController.handleGetBooking)
+  .post(verifyToken, requireLogin, staffController.handleEditStatusBooking);
 
 // router.get(
 //   "/health-exam-schedule-full-info",
@@ -34,12 +34,6 @@ router
 // );
 
 router.get("/working", staffController.handleGetDoctorWorking);
-
-// --------------------
-// Check up
-// router
-//   .route("/check-up")
-//   .get(staffController.handleGet);
 
 router.route("/check-up/health-record/done").post(
   localPdfLoader.array("pdf", 2),
@@ -57,8 +51,9 @@ router
 // Patient
 router
   .route("/patient")
-  .post(staffController.handleCreateOrUpdatePatient)
-  .get(staffController.handleGetPatient);
+  .post(verifyToken, requireLogin, staffController.handleCreateOrUpdatePatient)
+  .get(verifyToken, requireLogin, staffController.handleGetPatient)
+  .delete(verifyToken, requireLogin, staffController.handleDeletePatient);
 
 // ServiceDetails
 router

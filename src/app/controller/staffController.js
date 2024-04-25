@@ -99,17 +99,27 @@ class StaffController {
 
   // [GET] /booking
   async handleGetBooking(req, res) {
+    const user = req?.user;
+    var staffIdLogin;
+    if (user?.role?.keyType !== "admin") {
+      staffIdLogin = user?.id;
+    }
+
     const {
       offset,
       limit,
-      staffId,
       date,
       timeCodeId,
       checkUpCodeId,
       patientProfileName,
       healthExamScheduleId,
       bookingId,
+      staffId,
     } = req.query;
+    if (!staffIdLogin)
+      return res
+        .status(401)
+        .json({ statusCode: 401, msg: "Bạn chưa đăng nhập" });
     try {
       const data = await staffServices.getBooking({
         offset,
@@ -121,6 +131,7 @@ class StaffController {
         healthExamScheduleId,
         checkUpCodeId,
         bookingId,
+        staffIdLogin,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -251,6 +262,7 @@ class StaffController {
 
   async handleEditStatusBooking(req, res) {
     const { statusId, bookingId } = req.body;
+
     if (!statusId || !bookingId) {
       return res.status(401).json({
         statusCode: 1,
@@ -339,6 +351,9 @@ class StaffController {
 
   // [POST] /api/v1/patient
   async handleCreateOrUpdatePatient(req, res) {
+    const user = req?.user;
+    const staffId = user?.id;
+
     const {
       id,
       fullName,
@@ -351,7 +366,6 @@ class StaffController {
       nation,
       addressCode,
       copyFromPatientProfileId,
-      staffId,
     } = req.body;
     if (
       !id &&
@@ -384,8 +398,8 @@ class StaffController {
           gender,
           cccd,
           nation,
-          staffId,
           addressCode,
+          staffId,
         },
         { copyFromPatientProfileId }
       );
@@ -405,7 +419,12 @@ class StaffController {
   async handleGetPatient(req, res) {
     const { limit, offset, patientId, name, healthFacilityId, cccd } =
       req.query;
+    const user = req?.user;
+    let staffId;
 
+    if (user?.role?.keyType != "admin") {
+      staffId = user?.id;
+    }
     try {
       const data = await staffServices.getPatient({
         limit,
@@ -414,12 +433,37 @@ class StaffController {
         patientId,
         name,
         cccd,
+        staffId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }
       return res.status(400).json(data);
     } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [DELETE] /patient
+  async handleDeletePatient(req, res) {
+    const { id } = req.body;
+    if (!id)
+      return res.status(404).json({
+        statusCode: 1,
+        msg: "Id không được truyền.",
+      });
+    try {
+      const data = await staffServices.deletePatient({
+        id,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
       return res
         .status(500)
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });

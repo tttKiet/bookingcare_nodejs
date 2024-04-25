@@ -117,7 +117,6 @@ class AdminController {
   // [POST] /admin/health-facilities
   async handleCreateHealthFacility(req, res) {
     const files = req?.files;
-
     if (!files) {
       return res
         .status(500)
@@ -130,8 +129,16 @@ class AdminController {
       return f.location;
     });
 
-    const { name, address, phone, email, typeHealthFacilityId } = req.body;
-    if (!name || !address || !phone || !email || !typeHealthFacilityId) {
+    const { name, address, phone, addressCode, email, typeHealthFacilityId } =
+      req.body;
+    if (
+      !addressCode ||
+      !name ||
+      !address ||
+      !phone ||
+      !email ||
+      !typeHealthFacilityId
+    ) {
       const keys = files.map((f) => ({
         Key: f.key,
       }));
@@ -148,6 +155,7 @@ class AdminController {
         name,
         address,
         phone,
+        addressCode,
         email,
         typeHealthFacilityId,
         fileUrls,
@@ -171,40 +179,30 @@ class AdminController {
       offset,
       name,
       address,
-      typeHealthFacility,
       typeHealthFacilityId,
       email,
-      searchNameOrEmail,
       id,
+      ward,
+      district,
+      province,
     } = req.query;
-
     try {
-      if (email) {
-        const data = await healthFacilitiesServices.getHealthFacilityWithEmail({
-          limit,
-          offset,
-          email,
-        });
-        if (data.statusCode === 0) {
-          return res.status(200).json(data);
-        }
-        return res.status(400).json(data);
-      } else {
-        const data = await healthFacilitiesServices.getHealthFacilities({
-          id,
-          limit,
-          offset,
-          name,
-          address,
-          typeHealthFacility,
-          typeHealthFacilityId,
-          searchNameOrEmail,
-        });
-        if (data.statusCode === 0) {
-          return res.status(200).json(data);
-        }
-        return res.status(400).json(data);
+      const data = await healthFacilitiesServices.getHealthFacilities({
+        id,
+        limit,
+        offset,
+        name,
+        address,
+        typeHealthFacilityId,
+        email,
+        ward,
+        district,
+        province,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
       }
+      return res.status(400).json(data);
     } catch (err) {
       console.log(err);
       return res
@@ -241,8 +239,16 @@ class AdminController {
     const fileUrls = files.map((f) => {
       return f.location;
     });
-    const { name, address, phone, email, typeHealthFacilityId, id, imageOlds } =
-      req.body;
+    const {
+      name,
+      address,
+      addressCode,
+      phone,
+      email,
+      typeHealthFacilityId,
+      id,
+      imageOlds,
+    } = req.body;
     if (imageOlds?.length === 0 && fileUrls.length === 0) {
       return res.status(200).json({
         statusCode: 1,
@@ -269,6 +275,7 @@ class AdminController {
         name,
         address,
         phone,
+        addressCode,
         email,
         typeHealthFacilityId,
         fileUrls,
@@ -681,8 +688,8 @@ class AdminController {
 
   // [POST] /admin/work
   async handleCreateOrUpdateWork(req, res) {
-    const { staffId, healthFacilityId, startDate, endDate, id } = req.body;
-    if (!id && (!staffId || !healthFacilityId || !startDate)) {
+    const { staffId, healthFacilityId, id } = req.body;
+    if (!id && (!staffId || !healthFacilityId)) {
       return res.status(401).json({
         statusCode: 1,
         msg: "Thiếu tham số truyền vào.",
@@ -692,8 +699,6 @@ class AdminController {
       const data = await workServices.createOrUpdateWorking({
         staffId,
         healthFacilityId,
-        startDate,
-        endDate,
         id,
       });
       if (data.statusCode === 0) {
@@ -709,7 +714,7 @@ class AdminController {
 
   // [GET] /admin/work
   async handleGetWorking(req, res) {
-    const {
+    let {
       doctorName,
       id,
       doctorEmail,
@@ -717,7 +722,12 @@ class AdminController {
       healthFacilityName,
       healthFacilityId,
       type,
+      roleId,
     } = req.query;
+    const user = req?.user;
+    if (user?.role?.keyType !== "admin") {
+      doctorId = user?.id;
+    }
 
     try {
       const data = await workServices.getWorking({
@@ -728,6 +738,7 @@ class AdminController {
         healthFacilityName,
         healthFacilityId,
         type,
+        roleId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

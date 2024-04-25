@@ -42,6 +42,9 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
+      addressCode: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+      },
       images: DataTypes.ARRAY(DataTypes.STRING),
       name: DataTypes.STRING,
       address: DataTypes.STRING,

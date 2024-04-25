@@ -7,49 +7,10 @@ import workServices from "./workServices";
 
 class WorkServices {
   // Work
-  async checkInsertWorking(startDate, endDate, staffId, id) {
-    let workWhere = {};
-    id &&
-      (workWhere.id = {
-        [Op.ne]: id,
-      });
-    let workCheck;
-    // End date == null => Dang lam viec
-    if (!endDate) {
-      workCheck = await db.Working.findOne({
-        where: {
-          ...workWhere,
-          staffId,
-          [Op.or]: [
-            {
-              endDate: null,
-            },
-            {
-              endDate: {
-                [Op.gt]: startDate,
-              },
-            },
-          ],
-        },
-        raw: true,
-        order: [["createdAt", "DESC"]],
-        nest: true,
-        include: [db.HealthFacility],
-      });
-
-      if (workCheck) {
-        return workCheck;
-      }
-    }
-
-    workCheck = await db.Working.findOne({
+  async checkInsertWorking(staffId) {
+    const workCheck = await db.Working.findOne({
       where: {
-        ...workWhere,
         staffId,
-        endDate: null,
-        startDate: {
-          [Op.lt]: endDate,
-        },
       },
       raw: true,
       order: [["createdAt", "DESC"]],
@@ -59,37 +20,7 @@ class WorkServices {
     if (workCheck) {
       return workCheck;
     }
-
-    workCheck = await db.Working.findOne({
-      where: {
-        ...workWhere,
-        staffId,
-        [Op.or]: [
-          {
-            endDate: {
-              [Op.lt]: endDate,
-              [Op.gt]: startDate,
-            },
-          },
-          {
-            startDate: {
-              [Op.lt]: endDate,
-              [Op.gt]: startDate,
-            },
-          },
-        ],
-      },
-      raw: true,
-      order: [["createdAt", "DESC"]],
-      nest: true,
-      include: [db.HealthFacility],
-    });
-
-    if (workCheck) {
-      return workCheck;
-    } else {
-      return true;
-    }
+    return true;
   }
 
   async isWorking(staffId, healthFacilityId) {
@@ -115,13 +46,7 @@ class WorkServices {
     return workDoc;
   }
 
-  async createOrUpdateWorking({
-    staffId,
-    healthFacilityId,
-    startDate,
-    endDate,
-    id,
-  }) {
+  async createOrUpdateWorking({ staffId, healthFacilityId, id }) {
     // Check exist healthfaclility and staff
     const [healthFacilityDoc, staffDoc] = await Promise.all([
       db.HealthFacility.findByPk(healthFacilityId),
@@ -137,29 +62,17 @@ class WorkServices {
 
     if (!id) {
       // Create
-      const isInsert = await this.checkInsertWorking(
-        startDate,
-        endDate,
-        staffId
-      );
+      const isInsert = await this.checkInsertWorking(staffId);
       if (isInsert !== true) {
         return {
           statusCode: 1,
-          msg: `Nhân viên này có làm việc ở bệnh viện *${
-            isInsert.HealthFacility.name
-          }* .
-          Id: ${isInsert.id}
-          Time: ${moment(isInsert.startDate).format("l")} - ${
-            isInsert.endDate ? moment(isInsert.endDate).format("l") : "./"
-          }
-         `,
+          msg: `Nhân viên này đang làm việc ở bệnh viện *${isInsert.HealthFacility.name}*.`,
         };
       }
       const workDoc = await db.Working.create({
         staffId,
         healthFacilityId,
-        startDate,
-        endDate,
+        startDate: new Date(),
       });
 
       if (workDoc) {
@@ -175,30 +88,10 @@ class WorkServices {
         };
       }
     } else {
-      const isInsert = await this.checkInsertWorking(
-        startDate,
-        endDate,
-        staffId,
-        id
-      );
-      if (isInsert !== true) {
-        return {
-          statusCode: 2,
-          msg: `Không thể cập nhật lịch làm việc, thời gian bắt đầu trong lịch này trùng với lịch công việc có id *${
-            isInsert.id
-          } *
-          Time: ${moment(isInsert.startDate).format("l")} - ${moment(
-            isInsert.endDate
-          ).format("l")}`,
-        };
-      }
-
       const workDoc = await db.Working.update(
         {
           staffId,
           healthFacilityId,
-          startDate,
-          endDate,
         },
         {
           where: {
@@ -229,11 +122,15 @@ class WorkServices {
     doctorEmail,
     healthFacilityName,
     healthFacilityId,
-    type = "all",
+    roleId,
   }) {
     const whereQuery = {};
     const whereQueryDoctor = {};
     const whereQueryHeal = {};
+    const whereRole = {};
+
+    roleId && (whereRole.id = roleId);
+
     id &&
       (whereQuery.id = {
         [Op.substring]: id,
@@ -252,19 +149,6 @@ class WorkServices {
       });
     doctorId && (whereQueryDoctor.id = doctorId);
 
-    if (type == "current") {
-      whereQuery[Op.or] = [
-        {
-          endDate: null,
-        },
-        {
-          endDate: {
-            [Op.gt]: new Date(),
-          },
-        },
-      ];
-    }
-
     healthFacilityId && (whereQuery.healthFacilityId = healthFacilityId);
     const workingDoc = await db.Working.findAndCountAll({
       raw: true,
@@ -279,7 +163,13 @@ class WorkServices {
             exclude: ["createdAt", "updatedAt"],
           },
           where: whereQueryDoctor,
-          include: [db.AcademicDegree],
+          include: [
+            db.AcademicDegree,
+            {
+              model: db.Role,
+              where: whereRole,
+            },
+          ],
         },
         {
           model: db.HealthFacility,
@@ -968,10 +858,7 @@ class WorkServices {
 
     const promiseFields = documents.rows.map(async (row) => {
       const isAvailableBooking = await userServices.isBooking(row.id);
-      console.log(
-        "isAvailableBooking----------------------------",
-        isAvailableBooking
-      );
+
       return {
         ...row,
         isAvailableBooking,
