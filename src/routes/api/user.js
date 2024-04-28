@@ -32,6 +32,19 @@ router.get(
   userController.getDoctorWorkingOfHealth
 );
 
+router.get("/check-up-last-of-doctor", userController.getBookingLastStaff);
+
 router.post("/", userController.handleCreateOrUpdateUser);
 router.get("/", userController.handleGetUser);
+
+// review
+router
+  .route("/review/index")
+  .get(requireLogin, userController.handleGetReviewIndex);
+router
+  .route("/review")
+  .get(requireLogin, userController.handleGetReview)
+  .post(requireLogin, userController.handleCreateOrUpdateReview)
+  .delete(userController.handleDeleteReview);
+
 export default router;

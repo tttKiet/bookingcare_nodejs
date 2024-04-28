@@ -341,7 +341,7 @@ class StaffServices {
   }
 
   // Staff
-  async getStaff({ offset = 0, limit = 10, email, fullName, type }) {
+  async getStaff({ offset = 0, limit = 10, email, fullName, type, doctorId }) {
     const whereQuery = {};
     const whereRole = {};
     if (type)
@@ -359,6 +359,10 @@ class StaffServices {
       whereRole.keyType = {
         [Op.ne]: "admin",
       };
+    }
+
+    if (doctorId) {
+      whereQuery.id = doctorId;
     }
 
     email &&
@@ -1883,6 +1887,47 @@ class StaffServices {
       statusCode: 2,
       msg: "Tài liệu này chưa được xóa hoặc không tồn tại.",
     };
+  }
+  async calculatorReviewDoctor({ staffId }) {
+    const whereQueryReview = {};
+    if (staffId) {
+      whereQueryReview.staffId = staffId;
+    }
+
+    const revs = await db.Review.findAll({
+      raw: true,
+      where: whereQueryReview,
+      order: [["createdAt", "desc"]],
+      include: [db.Staff, db.User],
+      nest: true,
+    });
+    const sumReview = revs.reduce((init, value) => {
+      return init + value.starNumber;
+    }, 0);
+    console.log("\n\n\n\nsumReviewsumReview\n\n", sumReview);
+    console.log("revs\n\n", revs.length);
+
+    const avg = sumReview / (revs.length || 1);
+
+    const star5 = revs.filter((re) => re.starNumber == 5).length;
+    const star4 = revs.filter((re) => re.starNumber == 4).length;
+    const star3 = revs.filter((re) => re.starNumber == 3).length;
+    const star2 = revs.filter((re) => re.starNumber == 2).length;
+    const star1 = revs.filter((re) => re.starNumber == 1).length;
+
+    const views = {
+      countReview: revs.length,
+      avg: avg,
+      star: {
+        star5: star5,
+        star4: star4,
+        star3: star3,
+        star2: star2,
+        star1: star1,
+      },
+    };
+
+    return views;
   }
 }
 

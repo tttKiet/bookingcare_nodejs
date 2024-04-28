@@ -606,7 +606,7 @@ class AdminController {
 
   // [GET] /admin/staff
   async handleGetStaff(req, res) {
-    const { limit, offset, email, fullName, type } = req.query;
+    const { limit, offset, email, fullName, type, doctorId } = req.query;
     try {
       const data = await staffServices.getStaff({
         limit,
@@ -614,6 +614,7 @@ class AdminController {
         email,
         fullName,
         type,
+        doctorId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -1178,6 +1179,50 @@ class AdminController {
       ],
     });
     return res.status(200).json({ msg: "Lỗi server. Thử lại sau!" });
+  }
+
+  // Markdown
+  async handleHealthFacilityEditMarkDown(req, res) {
+    const { healthFacilityId, content, html } = req.body;
+    if (!healthFacilityId || !content || !html) {
+      return res.status(401).json({
+        statusCode: 400,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+    try {
+      const data = await adminServices.healthFacilityEditMarkDown({
+        healthFacilityId,
+        content,
+        html,
+      });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  async handleDoctorEditMarkDown(req, res) {
+    const { doctorId, content, html } = req.body;
+    if (!doctorId || !content || !html) {
+      return res.status(401).json({
+        statusCode: 400,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+    try {
+      const data = await adminServices.doctorEditMarkDown({
+        doctorId,
+        content,
+        html,
+      });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
   }
 }
 

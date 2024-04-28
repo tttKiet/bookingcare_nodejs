@@ -41,6 +41,12 @@ module.exports = {
       academicDegreeId: {
         type: Sequelize.UUID,
       },
+      markdownHtml: {
+        type: Sequelize.TEXT,
+      },
+      markdownContent: {
+        type: Sequelize.TEXT,
+      },
       specialistId: {
         type: Sequelize.UUID,
       },

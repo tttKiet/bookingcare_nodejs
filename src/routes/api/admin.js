@@ -71,6 +71,14 @@ router.post(
   },
   adminController.handleCreateHealthFacility
 );
+router.post(
+  "/page-mark-down/health-facilities",
+  adminController.handleHealthFacilityEditMarkDown
+);
+
+//staf mark down
+router.post("/page-mark-down/doctor", adminController.handleDoctorEditMarkDown);
+
 router.get("/health-facilities", adminController.handleGetHealthFacilities);
 
 router.patch(

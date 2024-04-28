@@ -27,6 +27,10 @@ module.exports = (sequelize, DataTypes) => {
       Staff.hasMany(models.HospitalManager, {
         foreignKey: "staffId",
       });
+
+      Staff.hasMany(models.Review, {
+        foreignKey: "staffId",
+      });
     }
   }
   Staff.init(
@@ -47,6 +51,12 @@ module.exports = (sequelize, DataTypes) => {
       roleId: DataTypes.UUID,
       academicDegreeId: DataTypes.UUID,
       specialistId: DataTypes.UUID,
+      markdownHtml: {
+        type: DataTypes.TEXT,
+      },
+      markdownContent: {
+        type: DataTypes.TEXT,
+      },
     },
     {
       sequelize,

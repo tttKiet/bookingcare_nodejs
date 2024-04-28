@@ -51,6 +51,12 @@ module.exports = (sequelize, DataTypes) => {
       phone: DataTypes.STRING,
       email: DataTypes.STRING,
       typeHealthFacilityId: DataTypes.UUID,
+      markdownHtml: {
+        type: DataTypes.TEXT,
+      },
+      markdownContent: {
+        type: DataTypes.TEXT,
+      },
     },
     {
       sequelize,

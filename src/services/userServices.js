@@ -3,9 +3,10 @@ import db from "../app/models";
 import bcrypt from "bcrypt";
 import workServices from "./workServices";
 import { raw } from "express";
-import { sendEmail as sendEmailHtml } from "../untils";
+import { searchLikeDeep, sendEmail as sendEmailHtml } from "../untils";
 import moment from "moment";
 import * as path from "path";
+import staffServices from "./staffServices";
 
 const saltRounds = 10;
 
@@ -220,9 +221,14 @@ class UserServices {
     } else {
       const wherePatientProfile = {};
       if (profileName) {
-        wherePatientProfile.fullName = {
-          [Op.substring]: profileName,
-        };
+        wherePatientProfile.fullName = searchLikeDeep(
+          "PatientProfile",
+          "fullName",
+          profileName
+        );
+        // wherePatientProfile.fullName = {
+        //   [Op.substring]: profileName,
+        // };
       }
 
       wherePatientProfile.userId = userId;
@@ -964,6 +970,262 @@ class UserServices {
       msg: "Lấy thông tin thành công.",
       data: result,
     };
+  }
+
+  async getBookingLastStaff({ userId, staffId }) {
+    const patientProfiles = await db.PatientProfile.findAll({
+      raw: true,
+      where: {
+        userId,
+      },
+    });
+
+    const dataPromiseBooking = patientProfiles.map(async (p) => {
+      const bookingDoc = await db.HealthRecord.findAndCountAll({
+        offset: 0,
+        limit: 5,
+        order: [["createdAt", "desc"]],
+        raw: true,
+        nest: true,
+        where: {
+          statusCode: "HR4",
+        },
+        include: [
+          db.Patient,
+          {
+            model: db.Booking,
+            where: {
+              patientProfileId: p?.id,
+            },
+            include: [
+              {
+                model: db.HealthExaminationSchedule,
+                include: [
+                  {
+                    model: db.Working,
+                    where: {
+                      staffId,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      return bookingDoc;
+    });
+
+    const result = await Promise.all(dataPromiseBooking);
+    return result.filter((r) => r != null);
+  }
+
+  async getBookingLastStaff5({ staffId }) {
+    const bookingDoc = await db.HealthRecord.findAndCountAll({
+      offset: 0,
+      limit: 5,
+      order: [["createdAt", "desc"]],
+      raw: true,
+      nest: true,
+      where: {
+        statusCode: "HR4",
+      },
+      include: [
+        db.Patient,
+        {
+          model: db.Booking,
+          include: [
+            {
+              model: db.HealthExaminationSchedule,
+              include: [
+                {
+                  model: db.Working,
+                  where: {
+                    staffId,
+                  },
+                },
+                {
+                  model: db.Code,
+                  as: "TimeCode",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    return {
+      statusCode: 200,
+      msg: "Lấy dữ liệu thành công",
+      data: bookingDoc,
+    };
+  }
+
+  async createOrUpdateReview({ id, staffId, starNumber, description, userId }) {
+    // Create a new Account
+    if (starNumber < 0 || starNumber > 5) {
+      return {
+        statusCode: 400,
+        msg: "Đánh giá sai.",
+      };
+    }
+    if (!id) {
+      // Check exit booking
+      const userDoc = await db.User.findOne({
+        raw: true,
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!userDoc)
+        return {
+          statusCode: 404,
+          msg: "Không tìm thấy người dùng đánh giá.",
+        };
+
+      // Check exit review
+      const reviewExist = await db.Review.findOne({
+        raw: true,
+        where: {
+          userId: userId,
+          staffId: staffId,
+        },
+      });
+      if (reviewExist)
+        return {
+          statusCode: 404,
+          msg: "Bạn đã đánh giá bác sỉ này rồi.",
+        };
+
+      const bookingLastStaff = await this.getBookingLastStaff({
+        userId,
+        staffId,
+      });
+
+      if (bookingLastStaff.length == 0) {
+        return {
+          statusCode: 402,
+          msg: "Bạn chưa khám ở bác sỉ này.",
+        };
+      }
+
+      // create review
+      const reviewDoc = await db.Review.create({
+        staffId,
+        starNumber,
+        description,
+        userId,
+      });
+
+      if (reviewDoc) {
+        return {
+          statusCode: 0,
+          msg: "Đã đánh giá.",
+          data: reviewDoc,
+        };
+      } else {
+        return {
+          statusCode: 4,
+          msg: "Lỗi xin thử lại.",
+        };
+      }
+    }
+
+    // update
+    else {
+      const userDocUpdated = await db.Review.update(
+        {
+          starNumber,
+          description,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+
+      if (userDocUpdated[0] > 0) {
+        return {
+          statusCode: 0,
+          msg: `Đã cập nhật đánh giá.`,
+        };
+      } else {
+        return {
+          statusCode: 0,
+          msg: "Dữ liệu chưa được thay đổi",
+        };
+      }
+    }
+  }
+
+  // Account
+  async getReview({ offset = 0, limit = 10, staffId, userId, type }) {
+    const whereQueryReview = {};
+    if (staffId) {
+      whereQueryReview.staffId = staffId;
+    }
+
+    if (type == "notme") {
+      whereQueryReview.userId = {
+        [Op.not]: userId,
+      };
+    } else if (userId) {
+      whereQueryReview.userId = userId;
+    }
+
+    const accounts = await db.Review.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQueryReview,
+      order: [["createdAt", "desc"]],
+      include: [db.Staff, db.User],
+      nest: true,
+    });
+
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        ...accounts,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  async calculatorReviewDoctorById({ staffId }) {
+    const views = await staffServices.calculatorReviewDoctor({ staffId });
+    return {
+      statusCode: 200,
+      msg: "Lấy thành công",
+      data: views,
+    };
+  }
+
+  async deleteReview(id) {
+    const deletedCount = await db.Review.destroy({
+      force: true,
+      where: {
+        id,
+      },
+    });
+
+    if (deletedCount > 0)
+      return {
+        statusCode: 0,
+        msg: "Đã xóa thành công.",
+      };
+    else {
+      return {
+        statusCode: 1,
+        msg: "Không tìm thấy tài nguyên này.",
+      };
+    }
   }
 }
 

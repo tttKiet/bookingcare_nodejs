@@ -247,7 +247,6 @@ class healthFacilitiesServices {
     // health
     if (name) {
       whereHealth.name = searchLikeDeep("HealthFacility", "name", name);
-
       // searchLikeDeep("name", name);
     }
 

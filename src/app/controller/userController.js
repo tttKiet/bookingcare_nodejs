@@ -327,8 +327,17 @@ class UserController {
 
   // [GET] /api/v1/user/list-doctor-working-health
   async getDoctorWorkingOfHealth(req, res) {
-    const { healthFacilityId, doctorName, doctorEmail, limit, offset } =
-      req.query;
+    const {
+      healthFacilityId,
+      doctorName,
+      doctorEmail,
+      limit,
+      offset,
+      specialistId,
+      gender,
+      academicDegreeId,
+      doctorId,
+    } = req.query;
     try {
       const data = await workServices.getDoctorWorkingAtHealth({
         limit,
@@ -336,6 +345,10 @@ class UserController {
         healthFacilityId,
         doctorName,
         doctorEmail,
+        specialistId,
+        doctorId,
+        gender,
+        academicDegreeId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -343,6 +356,131 @@ class UserController {
       return res.status(400).json(data);
     } catch (err) {
       console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /api/v1/user/review
+  async handleCreateOrUpdateReview(req, res) {
+    const { id, staffId, starNumber, description } = req.body;
+    const user = req?.user;
+    let userId = "";
+    if (user?.role?.keyType !== "admin") {
+      userId = user?.id;
+    }
+    if (!id && (!staffId || !starNumber || !description || !userId)) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+
+    try {
+      const data = await userServices.createOrUpdateReview({
+        id,
+        staffId,
+        starNumber,
+        description,
+        userId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /api/v1/user/review
+  async handleGetReview(req, res) {
+    const { limit, offset, staffId, type } = req.query;
+    const user = req?.user;
+    let userId = "";
+
+    if (user?.role?.keyType !== "admin") {
+      userId = user?.id;
+    }
+    try {
+      const data = await userServices.getReview({
+        limit,
+        offset,
+        userId,
+        staffId,
+        type,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /api/v1/user/review/index
+  async handleGetReviewIndex(req, res) {
+    const { staffId } = req.query;
+
+    try {
+      const data = await userServices.calculatorReviewDoctorById({
+        staffId,
+      });
+      if (data.statusCode === 200) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /api/v1/user/check-up-last-of-doctor
+  async getBookingLastStaff(req, res) {
+    const { staffId } = req.query;
+    if (!staffId) {
+      return res.status(404).json({ msg: "Vui lòng thêm id staff" });
+    }
+    try {
+      const data = await userServices.getBookingLastStaff5({
+        staffId,
+      });
+      if (data.statusCode === 200) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [Delete] /api/v1/user/patient-profile
+  async handleDeleteReview(req, res) {
+    const { id } = req.body;
+
+    if (!id) {
+      return res
+        .status(404)
+        .json({ statusCode: 4, msg: "Thiếu tham số truyền vào." });
+    }
+    try {
+      const data = await userServices.deleteReview(id);
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
       return res
         .status(500)
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });

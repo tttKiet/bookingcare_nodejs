@@ -236,6 +236,54 @@ class adminService {
       msg: "Dịch vụ này chưa được xóa hay không tồn tại.",
     };
   }
+
+  // markdown
+  async healthFacilityEditMarkDown({ healthFacilityId, content, html }) {
+    const doc = await db.HealthFacility.update(
+      {
+        markdownHtml: html,
+        markdownContent: content,
+      },
+      {
+        where: {
+          id: healthFacilityId,
+        },
+      }
+    );
+    if (doc?.[0] > 0) {
+      return {
+        statusCode: 200,
+        msg: "Đã lưu thay đổi.",
+      };
+    }
+    return {
+      statusCode: 400,
+      msg: "Đã có lỗi xảy ra. Không có id này!",
+    };
+  }
+  async doctorEditMarkDown({ doctorId, content, html }) {
+    const doc = await db.Staff.update(
+      {
+        markdownHtml: html,
+        markdownContent: content,
+      },
+      {
+        where: {
+          id: doctorId,
+        },
+      }
+    );
+    if (doc?.[0] > 0) {
+      return {
+        statusCode: 200,
+        msg: "Đã lưu thay đổi.",
+      };
+    }
+    return {
+      statusCode: 400,
+      msg: "Đã có lỗi xảy ra. Không có id này!",
+    };
+  }
 }
 
 export default new adminService();

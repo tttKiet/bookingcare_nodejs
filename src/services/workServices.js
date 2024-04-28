@@ -4,6 +4,7 @@ import db from "../app/models";
 import moment from "moment";
 import userServices from "./userServices";
 import workServices from "./workServices";
+import { searchLikeDeep } from "../untils";
 
 class WorkServices {
   // Work
@@ -502,21 +503,47 @@ class WorkServices {
   }
 
   // return a list of id doctor
-  async getListIdDoctorWorking(healthFacilityId, doctorName, doctorEmail) {
+  async getListIdDoctorWorking({
+    healthFacilityId,
+    doctorName,
+    doctorEmail,
+    specialistId,
+    gender,
+    doctorId,
+    academicDegreeId,
+  }) {
     const whereStaff = {};
+    const whereWorking = {};
+    if (healthFacilityId) {
+      whereWorking.healthFacilityId = healthFacilityId;
+    }
     if (doctorName) {
-      whereStaff.fullName = {
-        [Op.substring]: doctorName,
-      };
+      whereStaff.fullName = searchLikeDeep("Staff", "fullName", doctorName);
+    }
+
+    if (doctorId) {
+      whereStaff.id = doctorId;
     }
     if (doctorEmail) {
       whereStaff.email = {
         [Op.substring]: doctorEmail,
       };
     }
+    if (specialistId) {
+      whereStaff.specialistId = specialistId;
+    }
+
+    if (gender) {
+      whereStaff.gender = gender;
+    }
+
+    if (academicDegreeId) {
+      whereStaff.academicDegreeId = academicDegreeId;
+    }
+
     const workDoc = await db.Working.findAll({
       where: {
-        healthFacilityId,
+        ...whereWorking,
         [Op.or]: [
           {
             endDate: null,
@@ -566,13 +593,29 @@ class WorkServices {
     healthFacilityId,
     doctorName,
     doctorEmail,
+    specialistId,
+    doctorId,
+    gender,
+    academicDegreeId,
     // roomNumber,
   }) {
-    const listIdDoctorWorking = await this.getListIdDoctorWorking(
+    console.log(
+      "listIdDoctorWorkinglistIdDoctorWorkinglistIdDoctorWorkinglistIdDoctorWorking\n\n"
+    );
+    const listIdDoctorWorking = await this.getListIdDoctorWorking({
       healthFacilityId,
       doctorName,
-      doctorEmail
-    );
+      doctorEmail,
+      specialistId,
+      gender,
+      academicDegreeId,
+      doctorId,
+    });
+
+    const whereWorkRoom = {};
+    if (healthFacilityId) {
+      whereWorkRoom.healthFacilityId = healthFacilityId;
+    }
 
     const promiseAll = listIdDoctorWorking.map((working) => {
       return Promise.all([
@@ -584,7 +627,7 @@ class WorkServices {
               model: db.Working,
               where: {
                 staffId: working.staffId,
-                healthFacilityId: healthFacilityId,
+                ...whereWorkRoom,
               },
               include: [
                 {
