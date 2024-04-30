@@ -492,7 +492,7 @@ class UserServices {
     if (!doctorWorkRoom) {
       return {
         statusCode: 500,
-        msg: `Bác sỉ chưa được thêm vào phòng khám.`,
+        msg: `Bác sĩ chưa được thêm vào phòng khám.`,
       };
     }
     const doctorPrice = doctorWorkRoom.checkUpPrice;
@@ -936,7 +936,7 @@ class UserServices {
 
       return {
         statusCode: 0,
-        msg: "Lấy thông tin cho bác sỉ thành công.",
+        msg: "Lấy thông tin cho Bác sĩ thành công.",
         data: data,
       };
     }
@@ -1097,7 +1097,7 @@ class UserServices {
       if (reviewExist)
         return {
           statusCode: 404,
-          msg: "Bạn đã đánh giá bác sỉ này rồi.",
+          msg: "Bạn đã đánh giá Bác sĩ này rồi.",
         };
 
       const bookingLastStaff = await this.getBookingLastStaff({
@@ -1108,7 +1108,7 @@ class UserServices {
       if (bookingLastStaff.length == 0) {
         return {
           statusCode: 402,
-          msg: "Bạn chưa khám ở bác sỉ này.",
+          msg: "Bạn chưa khám ở Bác sĩ này.",
         };
       }
 
@@ -1226,6 +1226,181 @@ class UserServices {
         msg: "Không tìm thấy tài nguyên này.",
       };
     }
+  }
+  // get medical record
+  async getMedicalRecord({
+    offset = 0,
+    limit = 10,
+    staffId,
+    healthFacilityId,
+    healthRecordId,
+    cccd,
+  }) {
+    // trang thai da kham
+    const whereQueryHealthRecord = {
+      statusCode: "HR4",
+    };
+
+    const whereQueryPatient = {};
+    const whereQueryWorking = {};
+    if (healthRecordId) {
+      whereQueryHealthRecord.healthRecordId = healthRecordId;
+    }
+    if (cccd) {
+      whereQueryPatient.cccd = cccd;
+    }
+
+    if (staffId) {
+      whereQueryWorking.staffId = staffId;
+    }
+    if (healthFacilityId) {
+      whereQueryWorking.healthFacilityId = healthFacilityId;
+    }
+    const medicalRecord = await db.HealthRecord.findAndCountAll({
+      raw: true,
+      offset,
+      limit,
+      where: whereQueryHealthRecord,
+      order: [["createdAt", "desc"]],
+      include: [
+        {
+          model: db.Patient,
+          where: whereQueryPatient,
+        },
+        // {
+        //   model: db.Booking,
+        //   include: [
+        //     {
+        //       model: db.HealthExaminationSchedule,
+        //       include: [
+        //         {
+        //           model: db.Code,
+        //           as: "TimeCode",
+        //         },
+        //         {
+        //           model: db.Working,
+        //           where: whereQueryWorking,
+        //           include: [
+        //             {
+        //               model: db.HealthFacility,
+        //             },
+        //             {
+        //               model: db.Staff,
+        //             },
+        //           ],
+        //         },
+        //       ],
+        //     },
+        //   ],
+        // },
+      ],
+      nest: true,
+    });
+
+    const pmisedata = medicalRecord?.rows?.map(async (m) => {
+      const bookingDoc = await db.Booking.findOne({
+        where: {
+          id: m.bookingId,
+        },
+        include: [
+          {
+            model: db.HealthExaminationSchedule,
+            include: [
+              {
+                model: db.Code,
+                as: "TimeCode",
+              },
+              {
+                model: db.Working,
+                where: whereQueryWorking,
+                include: [
+                  {
+                    model: db.HealthFacility,
+                  },
+                  {
+                    model: db.Staff,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        raw: true,
+        nest: true,
+      });
+      return {
+        Booking: bookingDoc,
+        ...m,
+      };
+    });
+
+    const data = await this.getInfoMedicalRecord({ cccd });
+    const medicalRecordPromiseData = await Promise.all(pmisedata);
+    return {
+      statusCode: 0,
+      msg: "Lấy thông tin thành công.",
+      data: {
+        count: medicalRecord.count,
+        rows: medicalRecordPromiseData,
+        optionFilter: data,
+        limit: limit,
+        offset: offset,
+      },
+    };
+  }
+
+  // get  info medical record
+  async getInfoMedicalRecord({ cccd }) {
+    if (!cccd) return null;
+    // trang thai da kham
+    const whereQueryHealthRecord = {
+      statusCode: "HR4",
+    };
+    const whereQueryPatient = {};
+
+    if (cccd) {
+      whereQueryPatient.cccd = cccd;
+    }
+
+    const medicalRecord = await db.HealthRecord.findAll({
+      raw: true,
+      where: whereQueryHealthRecord,
+      order: [["createdAt", "desc"]],
+      include: [
+        {
+          model: db.Patient,
+          where: whereQueryPatient,
+        },
+        {
+          model: db.Booking,
+          include: [
+            {
+              model: db.HealthExaminationSchedule,
+              include: [
+                {
+                  model: db.Working,
+                  include: [db.Staff, db.HealthFacility],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      nest: true,
+    });
+
+    const doctorList = medicalRecord.map(
+      (m) => m?.Booking?.HealthExaminationSchedule?.Working?.Staff
+    );
+
+    const healthFacilityList = medicalRecord.map(
+      (m) => m?.Booking?.HealthExaminationSchedule?.Working?.HealthFacility
+    );
+    // return medicalRecord;
+    return {
+      doctorList,
+      healthFacilityList,
+    };
   }
 }
 

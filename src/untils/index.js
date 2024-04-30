@@ -95,3 +95,14 @@ export function searchLikeDeep(dbName, colName, value) {
   );
   return { [Op.and]: wordConditions };
 }
+
+export function searchLikeUnMark(dbName, colName, value) {
+  const wordsToSearch = removeAccentsAndLowerCase(value);
+  const wordConditions = Sequelize.where(
+    Sequelize.fn("unaccent", Sequelize.col(`${dbName}.${colName}`)),
+    {
+      [Op.iLike]: Sequelize.fn("unaccent", "%" + wordsToSearch + "%"),
+    }
+  );
+  return { [Op.and]: [wordConditions] };
+}

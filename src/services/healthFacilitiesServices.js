@@ -466,7 +466,7 @@ class healthFacilitiesServices {
       if (countWorkRoom.length > capacity) {
         return {
           statusCode: 4,
-          msg: "Số bác sỉ được phân công khám hiện tại lớn hơn sức chứa của phòng.",
+          msg: "Số Bác sĩ được phân công khám hiện tại lớn hơn sức chứa của phòng.",
         };
       }
       await db.WorkRoom.update(
@@ -550,7 +550,7 @@ class healthFacilitiesServices {
     if (workDoc) {
       return {
         statusCode: 2,
-        msg: "Đã xóa thất bại. Tồn tại bác sỉ đang được phân công trong phòng này.",
+        msg: "Đã xóa thất bại. Tồn tại Bác sĩ đang được phân công trong phòng này.",
       };
     }
     const count = await db.ClinicRoom.destroy({

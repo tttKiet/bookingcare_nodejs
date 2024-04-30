@@ -15,6 +15,16 @@ router
   .route("/health-exam-schedule/doctor")
   .get(staffController.getHealthExamScheduleForDoctor);
 
+router
+  .route("/register-schedule")
+  .post(staffController.registerSchedule)
+  .delete(staffController.deleteSchedule);
+
+// get all
+router
+  .route("/health-exam-schedule/all")
+  .get(staffController.handleGetHealthExamScheduleAll);
+
 // Health Examination Schedule
 router
   .route("/health-exam-schedule")

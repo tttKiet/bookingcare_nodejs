@@ -97,6 +97,38 @@ class StaffController {
     }
   }
 
+  // [GET] /health-exam-schedule/all
+  async handleGetHealthExamScheduleAll(req, res) {
+    const {
+      limit,
+      offset,
+      staffId,
+      date,
+      workingId,
+      healthFacilityName,
+      staffName,
+    } = req.query;
+    try {
+      const data = await workServices.getHealthExamScheduleDoctorAndTimeCode({
+        limit,
+        offset,
+        staffId,
+        date,
+        workingId,
+        healthFacilityName,
+        staffName,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
   // [GET] /booking
   async handleGetBooking(req, res) {
     const user = req?.user;
@@ -632,6 +664,87 @@ class StaffController {
         return res.status(200).json(data);
       }
       return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [DELETE] /api/v1/doctor/prescription-details
+  async deleteSchedule(req, res) {
+    const { schedule } = req.body;
+    console.log("\n\nschedule\n", schedule);
+    if (!schedule || schedule?.length < 0)
+      return res.status(404).json({
+        statusCode: 1,
+        msg: "schedule không được truyền.",
+      });
+
+    let arr = [];
+    if (Array.isArray(schedule)) {
+      arr = schedule;
+    } else {
+      arr = [schedule];
+    }
+    // return res.status(200).json(schedule);
+
+    try {
+      const data = await staffServices.deleteSchedule({
+        schedules: arr,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /api/v1/register-schedule
+  async registerSchedule(req, res) {
+    const {
+      workingId,
+      unit, // don vi ngay ->  ngay, tuan, thang [date,week,month]
+      startDate,
+      endDate,
+      quantity,
+      optionTimeCode, //[all, some]
+      timeCodeArray: timeCodes,
+      maxNumber,
+    } = req.body;
+    if (!workingId)
+      return res.status(404).json({
+        statusCode: 1,
+        msg: "workingId không được truyền.",
+      });
+    let timeCodeArray = [];
+    if (Array.isArray(timeCodes)) {
+      timeCodeArray = timeCodes;
+    } else {
+      timeCodeArray = [timeCodes];
+    }
+
+    try {
+      const data = await workServices.registerSchedule({
+        workingId,
+        unit, // don vi ngay ->  ngay, tuan, thang [date,week,month]
+        startDate,
+        endDate,
+        quantity,
+        optionTimeCode, //[all, some]
+        timeCodeArray,
+        maxNumber,
+      });
+      if (data.statusCode === 200 || data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(data.statusCode).json(data);
     } catch (err) {
       console.log(err);
       return res

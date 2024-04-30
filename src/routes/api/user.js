@@ -47,4 +47,7 @@ router
   .post(requireLogin, userController.handleCreateOrUpdateReview)
   .delete(userController.handleDeleteReview);
 
+// medical-record
+router.route("/medical-record").get(userController.handleGetMedicalRecord);
+
 export default router;

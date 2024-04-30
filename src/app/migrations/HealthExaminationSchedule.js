@@ -28,6 +28,12 @@ module.exports = {
         type: Sequelize.INTEGER,
       },
     });
+
+    return queryInterface.addConstraint("HealthExaminationSchedules", {
+      type: "unique",
+      fields: ["date", "workingId", "timeCode"],
+      name: "schedule_unique",
+    });
   },
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable("HealthExaminationSchedules");

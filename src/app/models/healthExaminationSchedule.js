@@ -43,6 +43,13 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "HealthExaminationSchedule",
       timestamps: false,
+      indexes: [
+        {
+          unique: true,
+          name: "schedule",
+          fields: ["date", "workingId", "timeCode"], // you can use multiple columns as well here
+        },
+      ],
     }
   );
   return HealthExaminationSchedule;

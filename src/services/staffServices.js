@@ -5,7 +5,7 @@ import workServices from "./workServices";
 import moment from "moment";
 import { raw } from "express";
 const saltRounds = 10;
-import { sendEmail } from "../untils";
+import { searchLikeUnMark, sendEmail } from "../untils";
 import * as fs from "fs";
 import * as path from "path";
 class StaffServices {
@@ -336,7 +336,7 @@ class StaffServices {
       };
     return {
       statusCode: 0,
-      msg: "Không tìm thấy bác sỉ.",
+      msg: "Không tìm thấy Bác sĩ.",
     };
   }
 
@@ -441,7 +441,7 @@ class StaffServices {
       if (!academicDegreeId || !specialistId || !experience || !certificate) {
         return {
           statusCode: 400,
-          msg: "Tham tạo bác sỉ chưa đủ.",
+          msg: "Tham tạo Bác sĩ chưa đủ.",
         };
       }
     }
@@ -516,13 +516,13 @@ class StaffServices {
       if (userDoc) {
         return {
           statusCode: 0,
-          msg: "Tạo tài khoản bác sỉ thành công.",
+          msg: "Tạo tài khoản Bác sĩ thành công.",
           data: userDoc,
         };
       } else {
         return {
           statusCode: 4,
-          msg: "Lỗi tạo tài khoản bác sỉ.",
+          msg: "Lỗi tạo tài khoản Bác sĩ.",
         };
       }
     } else {
@@ -722,10 +722,14 @@ class StaffServices {
   }) {
     const whereQueryDoctor = {};
     const whereQueryWorking = {};
+
     doctorName &&
-      (whereQueryDoctor.fullName = {
-        [Op.substring]: doctorName,
-      });
+      (whereQueryDoctor.fullName = searchLikeUnMark(
+        "Staff",
+        "fullName",
+        doctorName
+      ));
+    // wordConditions
     doctorEmail &&
       (whereQueryDoctor.email = {
         [Op.substring]: doctorEmail,
@@ -819,7 +823,7 @@ class StaffServices {
       } else {
         return {
           statusCode: 1,
-          msg: "Không tìm thấy bác sỉ",
+          msg: "Không tìm thấy Bác sĩ",
         };
       }
     }
@@ -1928,6 +1932,57 @@ class StaffServices {
     };
 
     return views;
+  }
+
+  async deleteSchedule({ schedules }) {
+    // check dang lich
+    const bookingExist = await db.Booking.findOne({
+      where: {
+        healthExamScheduleId: {
+          [Op.in]: schedules,
+        },
+      },
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          include: [
+            {
+              model: db.Code,
+              as: "TimeCode",
+            },
+          ],
+        },
+      ],
+      nest: true,
+      raw: true,
+    });
+
+    if (bookingExist) {
+      return {
+        statusCode: 400,
+        msg: `Có người đăng ký lịch ${bookingExist?.HealthExaminationSchedule?.date} / ${bookingExist?.HealthExaminationSchedule?.TimeCode?.value}  vui lòng liên hệ với người đặt lịch để hủy lịch!`,
+        data: bookingExist,
+      };
+    }
+
+    const data = await db.HealthExaminationSchedule.destroy({
+      where: {
+        id: {
+          [Op.in]: schedules,
+        },
+      },
+    });
+    if (data > 0) {
+      return {
+        statusCode: 0,
+        msg: "Xóa thành công.",
+        data: data,
+      };
+    }
+    return {
+      statusCode: 2,
+      msg: "Tài liệu này chưa được xóa hoặc không tồn tại.",
+    };
   }
 }
 

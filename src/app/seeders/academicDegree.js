@@ -14,7 +14,7 @@ module.exports = {
         },
         {
           id: "480f5c52-abbd-4d28-9c9c-99c41feaafcf",
-          name: "Bác sỉ",
+          name: "Bác sĩ",
           createdAt: "2023-09-16T04:36:05.114Z",
           updatedAt: "2023-09-16T04:36:05.114Z",
         },

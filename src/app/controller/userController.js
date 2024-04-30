@@ -486,6 +486,31 @@ class UserController {
         .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
     }
   }
+
+  // [GET] /api/v1/user/medical-record
+  async handleGetMedicalRecord(req, res) {
+    const { limit, offset, staffId, healthFacilityId, healthRecordId, cccd } =
+      req.query;
+
+    try {
+      const data = await userServices.getMedicalRecord({
+        limit,
+        offset,
+        staffId,
+        healthFacilityId,
+        healthRecordId,
+        cccd,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
 }
 
 export default new UserController();

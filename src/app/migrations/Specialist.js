@@ -28,7 +28,7 @@ module.exports = {
         validate: {
           len: {
             args: [0, 1000],
-            msg: "Mô tả bác sỉ chửa trị từ 0 - 1000 kí tự.",
+            msg: "Mô tả Bác sĩ chửa trị từ 0 - 1000 kí tự.",
           },
         },
       },
