@@ -124,30 +124,43 @@ class WorkServices {
     healthFacilityName,
     healthFacilityId,
     roleId,
+    Role,
   }) {
     const whereQuery = {};
     const whereQueryDoctor = {};
     const whereQueryHeal = {};
     const whereRole = {};
 
-    roleId && (whereRole.id = roleId);
+    if (Role && Role.length > 0) {
+      whereRole.keyType = {
+        [Op.in]: Role,
+      };
+    } else if (roleId) {
+      whereRole.id = roleId;
+    }
 
     id &&
       (whereQuery.id = {
         [Op.substring]: id,
       });
     doctorName &&
-      (whereQueryDoctor.fullName = {
-        [Op.substring]: doctorName,
-      });
+      (whereQueryDoctor.fullName = searchLikeDeep(
+        "Staff",
+        "fullName",
+        doctorName
+      ));
+
     doctorEmail &&
       (whereQueryDoctor.email = {
         [Op.substring]: doctorEmail,
       });
     healthFacilityName &&
-      (whereQueryHeal.name = {
-        [Op.substring]: healthFacilityName,
-      });
+      (whereQueryHeal.name = searchLikeDeep(
+        "HealthFacility",
+        "name",
+        healthFacilityName
+      ));
+
     doctorId && (whereQueryDoctor.id = doctorId);
 
     healthFacilityId && (whereQuery.healthFacilityId = healthFacilityId);
@@ -182,6 +195,7 @@ class WorkServices {
       ],
       nest: true,
     });
+
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
@@ -599,9 +613,6 @@ class WorkServices {
     academicDegreeId,
     // roomNumber,
   }) {
-    console.log(
-      "listIdDoctorWorkinglistIdDoctorWorkinglistIdDoctorWorkinglistIdDoctorWorking\n\n"
-    );
     const listIdDoctorWorking = await this.getListIdDoctorWorking({
       healthFacilityId,
       doctorName,
@@ -720,23 +731,50 @@ class WorkServices {
     }
     staffId && (whereQuery.workingId = getWorkingId);
     staffId && (whereHealthExaminationSchedule.workingId = getWorkingId);
+
+    const currentDate = moment().format("YYYY-MM-DD");
+    // if (type === "current") {
+    //   whereQuery.date = {
+    //     [Op.gte]: moment(Sequelize.col("date")).format("L"),
+    //   };
+    // }
+
     // check date distinct
     const dateDistincts = await db.HealthExaminationSchedule.findAndCountAll({
-      attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"],
+        [
+          Sequelize.literal(
+            `CASE WHEN date < '${moment().format("L")}' THEN 1 ELSE 0 END`
+          ),
+          "dateOrder",
+        ],
+        [
+          Sequelize.literal("TO_CHAR(\"date\"::date, 'YYYY-MM-DD')"),
+          "formatted_date",
+        ],
+      ],
       offset,
       limit,
       where: {
         ...whereQuery,
       },
-      order: [["date", "asc"]],
+      order: [
+        ["dateOrder", "asc"],
+        // ["date", "asc"],
+        ["formatted_date", "asc"],
+        // Sequelize.literal(
+        //   `CASE WHEN date < '${moment().format("L")}' THEN 1 ELSE 0 END`
+        // ),
+      ],
     });
 
     const countFuture = await db.HealthExaminationSchedule.findAll({
       attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"]],
       where: {
-        date: {
-          [Op.gt]: moment(new Date()).format("L"),
-        },
+        // date: {
+        //   [Op.gt]: moment(new Date()).format("L"),
+        // },
         ...whereHealthExaminationSchedule,
       },
     });
@@ -746,11 +784,6 @@ class WorkServices {
     //   statusCode: 200,
     //   data: wokingIdDistinctsss,
     // };
-    if (type === "current") {
-      whereQuery.date = {
-        [Op.gt]: moment(new Date()).format("L"),
-      };
-    }
 
     // map every date
     const ds = dateDistincts.rows.map(async (d) => {
@@ -856,11 +889,22 @@ class WorkServices {
 
     staffId && (whereQueryWorking.staffId = staffId);
     workingId && (whereQueryWorking.id = workingId);
-    date && (whereQuery.date = moment(date).format("L"));
 
+    if (date && moment(date).isValid()) {
+      whereQuery.date = moment(date).format("L");
+    }
+
+    if (workingId) {
+      whereQuery.workingId = workingId;
+    }
     let getWorkingId;
-    if (staffId) {
-      const working = await workServices.getWorking({ doctorId: staffId });
+
+    if (staffId || healthFacilityName || staffName) {
+      const working = await workServices.getWorking({
+        doctorId: staffId,
+        doctorName: staffName,
+        healthFacilityName,
+      });
       if (working.statusCode === 0 && working?.data?.rows?.[0]?.id) {
         getWorkingId = working.data?.rows?.[0]?.id;
       } else {
@@ -879,34 +923,11 @@ class WorkServices {
 
     staffId && (whereQuery.workingId = getWorkingId);
     staffId && (whereHealthExaminationSchedule.workingId = getWorkingId);
-
-    // check date distinct
-    // const staffistincts = await db.HealthExaminationSchedule.findAndCountAll({
-    //   attributes: [
-    //     [Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"],
-    //     [
-    //       Sequelize.literal(
-    //         `CASE WHEN date < '${moment().format("L")}' THEN 1 ELSE 0 END`
-    //       ),
-    //       "dateOrder",
-    //     ],
-    //     "workingId",
-    //   ],
-    //   raw: true,
-    //   offset,
-    //   limit,
-    //   where: {
-    //     ...whereQuery,
-    //   },
-    //   order: [
-    //     ["dateOrder", "asc"],
-    //     ["date", "asc"],
-    //     // Sequelize.literal(
-    //     //   `CASE WHEN date < '${moment().format("L")}' THEN 1 ELSE 0 END`
-    //     // ),
-    //   ],
-    // });
-
+    if (getWorkingId) {
+      whereQuery.workingId = {
+        [Op.in]: Array.isArray(getWorkingId) ? getWorkingId : [getWorkingId],
+      };
+    }
     const staffistincts = await db.HealthExaminationSchedule.findAndCountAll({
       raw: true,
       attributes: [
@@ -918,40 +939,34 @@ class WorkServices {
           ),
           "dateOrder",
         ],
+        [
+          Sequelize.literal("TO_CHAR(\"date\"::date, 'YYYY-MM-DD')"),
+          "formatted_date",
+        ],
       ],
       offset,
       limit,
       where: {
         ...whereQuery,
       },
+      nest: true,
+      raw: true,
       group: ["date", "workingId"],
       order: [
         ["dateOrder", "asc"],
-        ["date", "asc"],
+        // ["date", "asc"],
+        ["formatted_date", "asc"],
         // Sequelize.literal(
         //   `CASE WHEN date < '${moment().format("L")}' THEN 1 ELSE 0 END`
         // ),
       ],
     });
 
-    // const countFuture = await db.HealthExaminationSchedule.findAll({
-    //   attributes: [
-    //     Sequelize.fn("DISTINCT", Sequelize.col("workingId")),
-    //     "workingId",
-    //   ],
-    //   where: {
-    //     date: {
-    //       [Op.gt]: moment(new Date()).format("L"),
-    //     },
-    //     ...whereHealthExaminationSchedule,
-    //   },
-    // });
-
-    // if (type === "current") {
-    //   whereQuery.date = {
-    //     [Op.gt]: moment(new Date()).format("L"),
-    //   };
-    // }
+    // return {
+    //   statusCode: 0,
+    //   msg: "ok",
+    //   staffistincts,
+    // };
 
     // map every date
     const ds = staffistincts.rows.map(async (d) => {
@@ -1069,9 +1084,10 @@ class WorkServices {
     staffId && (whereQueryWorking.staffId = staffId);
     workingId && (whereQueryWorking.id = workingId);
     date && (whereQuery.date = moment(date).format("L"));
+    const currentDate = moment().format("YYYY-MM-DD");
     if (type === "current") {
       whereQuery.date = {
-        [Op.gt]: moment(new Date()).format("L"),
+        [Op.gte]: Sequelize.fn("DATE", Sequelize.literal(`'${currentDate}'`)),
       };
     }
     const documents = await db.HealthExaminationSchedule.findAndCountAll({
@@ -1156,9 +1172,10 @@ class WorkServices {
 
     staffId && (whereQueryWorking.staffId = staffId);
     workingId && (whereQueryWorking.id = workingId);
-
-    date && (whereQuery.date = moment(date).format("L"));
-
+    console.log("\n\n\nmoment(date).isValid()", moment(date).isValid());
+    if (date && moment(date).isValid()) {
+      whereQuery.date = moment(date).format("L");
+    }
     if (type === "current") {
       whereQuery.date = {
         [Op.gt]: moment(new Date()).format("L"),
@@ -1204,21 +1221,6 @@ class WorkServices {
       ],
       nest: true,
     });
-
-    // const promiseFields = documents.rows.map(async (row) => {
-    //   const isAvailableBooking = await userServices.isBooking(row.id);
-
-    //   return {
-    //     ...row,
-    //     isAvailableBooking,
-    //   };
-    // });
-
-    // const docs = await Promise.all(promiseFields);
-    // const results = {
-    //   count: documents.count,
-    //   rows: docs,
-    // };
 
     return {
       statusCode: 0,
@@ -1675,7 +1677,7 @@ class WorkServices {
         const momentStartDate = moment(new Date(startDate), "DD-MM-YYYY");
         let dateWhile = momentStartDate;
         let dateWhileEnd = moment(new Date(startDate), "DD-MM-YYYY").add(
-          "month",
+          "months",
           quantity
         );
 
@@ -1761,6 +1763,29 @@ class WorkServices {
         msg: "Không tìm thấy tài nguyên này.",
       };
     }
+  }
+
+  // test api
+  async testapi() {
+    // const data = await db.HealthExaminationSchedule.findAll({
+    //   raw: true,
+    // });
+    const sch = await db.HealthExaminationSchedule.findAll({ raw: true });
+
+    const whereRole = {};
+    whereRole.keyType = {
+      [Op.in]: ["doctor"],
+    };
+
+    const workingDoc = await db.WorkRoom.findAll({
+      raw: true,
+      nest: true,
+    });
+    return {
+      statusCode: 200,
+      msg: "Ok!",
+      data: workingDoc,
+    };
   }
 }
 

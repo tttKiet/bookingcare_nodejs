@@ -5,7 +5,7 @@ import workServices from "./workServices";
 import moment from "moment";
 import { raw } from "express";
 const saltRounds = 10;
-import { searchLikeUnMark, sendEmail } from "../untils";
+import { searchLikeDeep, searchLikeUnMark, sendEmail } from "../untils";
 import * as fs from "fs";
 import * as path from "path";
 class StaffServices {
@@ -341,9 +341,19 @@ class StaffServices {
   }
 
   // Staff
-  async getStaff({ offset = 0, limit = 10, email, fullName, type, doctorId }) {
+  async getStaff({
+    offset = 0,
+    limit = 10,
+    email,
+    fullName,
+    type,
+    doctorId,
+    isWorking,
+    Role,
+  }) {
     const whereQuery = {};
     const whereRole = {};
+
     if (type)
       whereRole.keyType = {
         [Op.and]: [
@@ -355,9 +365,32 @@ class StaffServices {
           },
         ],
       };
-    else {
+    else if (Role && Role.length > 0) {
+      whereRole.keyType = {
+        [Op.and]: [
+          {
+            [Op.ne]: "admin",
+          },
+          {
+            [Op.in]: Role,
+          },
+        ],
+      };
+    } else {
       whereRole.keyType = {
         [Op.ne]: "admin",
+      };
+    }
+
+    var listStaffId = [];
+    if (isWorking == "false") {
+      const workingExisted = await db.Working.findAll({ raw: true });
+      listStaffId = workingExisted?.map((s) => s.staffId) || [];
+    }
+
+    if (listStaffId.length > 0) {
+      whereQuery.id = {
+        [Op.notIn]: listStaffId,
       };
     }
 
@@ -371,9 +404,7 @@ class StaffServices {
       });
 
     fullName &&
-      (whereQuery.fullName = {
-        [Op.substring]: fullName,
-      });
+      (whereQuery.fullName = searchLikeDeep("Staff", "fullName", fullName));
     const accounts = await db.Staff.findAndCountAll({
       raw: true,
       offset,
@@ -724,7 +755,7 @@ class StaffServices {
     const whereQueryWorking = {};
 
     doctorName &&
-      (whereQueryDoctor.fullName = searchLikeUnMark(
+      (whereQueryDoctor.fullName = searchLikeDeep(
         "Staff",
         "fullName",
         doctorName
@@ -943,7 +974,107 @@ class StaffServices {
   }
 
   // [POST] /check-up/health-record
-  async editStatusBooking({ statusId, bookingId }) {
+  async editStatusBooking({ statusId, bookingId, userId }) {
+    if (userId && statusId == "CU4") {
+      const moment3Day = moment().clone().add(3, "days");
+
+      //check for 3 day
+      const bookingIn3day = await db.Booking.findOne({
+        where: {
+          id: bookingId,
+        },
+        include: [
+          {
+            model: db.HealthExaminationSchedule,
+            where: {
+              date: {
+                [Op.lte]: moment3Day.format("L"),
+              },
+            },
+          },
+        ],
+        raw: true,
+        nest: true,
+        limit: 3,
+        order: [["createdAt", "desc"]],
+      });
+
+      if (bookingIn3day) {
+        // count cu4
+        const countCancel = await db.Booking.findAll({
+          where: {
+            id: {
+              [Op.not]: bookingId,
+            },
+          },
+          include: [
+            {
+              model: db.PatientProfile,
+              where: {
+                userId,
+              },
+            },
+            {
+              model: db.HealthExaminationSchedule,
+            },
+          ],
+          raw: true,
+          nest: true,
+          limit: 3,
+          order: [["createdAt", "desc"]],
+        });
+
+        const countCancelFor3Day = countCancel.filter(
+          (c) =>
+            c.status === "CU4" &&
+            moment(c.HealthExaminationSchedule.date).isSameOrBefore(
+              moment3Day
+            ) &&
+            c.paymentType != "card"
+        );
+
+        if (countCancelFor3Day.length >= 2) {
+          const userUpdate = db.User.update(
+            { banded: true },
+            {
+              where: {
+                id: userId,
+              },
+            }
+          );
+          const codeDoc = await db.Code.findOne({
+            where: {
+              key: statusId,
+            },
+            raw: true,
+          });
+
+          if (!codeDoc) {
+            return {
+              statusCode: 2,
+              msg: `Không tin thấy trạng thái ${statusId}.`,
+            };
+          }
+          const doc = await db.Booking.update(
+            {
+              status: statusId,
+            },
+            {
+              where: {
+                id: bookingId,
+              },
+            }
+          );
+
+          return {
+            statusCode: 0,
+            msg: `Hủy lịch thành công tài khoản của bạn đang tạm khóa do hủy lịch liên tiếp 3 lần.
+            Vui lòng liên hệ với admin để mở khóa!`,
+          };
+        }
+      }
+    }
+
     const codeDoc = await db.Code.findOne({
       where: {
         key: statusId,
@@ -988,7 +1119,7 @@ class StaffServices {
       if (!codeDoc) {
         return {
           statusCode: 2,
-          msg: `Không tin thấy trạng thái ${statusId}.`,
+          msg: `Không tìm thấy trạng thái ${statusId}.`,
         };
       }
       dataUpdate.statusCode = statusId;
@@ -1052,7 +1183,6 @@ class StaffServices {
     if (diagnosis) {
       dataUpdate.diagnosis = diagnosis;
     }
-    console.log("\n\n\nsdsadsa---");
     if (note) {
       dataUpdate.note = note;
     }
@@ -1133,6 +1263,7 @@ class StaffServices {
       const __dirname = path.resolve();
       const srcHtml = "/src/views/template/email_result_booking.html";
       const filePath = path.join(__dirname, srcHtml);
+      console.log("\n\n\n\n\nfiles", files);
       const filePdfs = files.map((f) => ({
         filename: f.originalname,
         content: f.buffer,
@@ -1345,17 +1476,22 @@ class StaffServices {
       }
     }
 
-    const workingDoc = await workServices.getWorking({
-      doctorId: data.staffId,
-    });
+    let healthFacilityId = "";
+    if (data?.healthFacilityId) {
+      healthFacilityId = data?.healthFacilityId;
+    } else {
+      const workingDoc = await workServices.getWorking({
+        doctorId: data.staffId,
+      });
 
-    if (!workingDoc?.statusCode == 0 && !workingDoc.data.rows[0]) {
-      return {
-        statusCode: 400,
-        msg: "Không tìm thấy công tác của của nhân viên này.",
-      };
+      if (!workingDoc?.statusCode == 0 && !workingDoc.data.rows[0]) {
+        return {
+          statusCode: 400,
+          msg: "Không tìm thấy công tác của của nhân viên này.",
+        };
+      }
+      healthFacilityId = workingDoc?.data?.rows?.[0].healthFacilityId;
     }
-    const healthFacilityId = workingDoc?.data?.rows?.[0].healthFacilityId;
 
     // Create a new Account
     if (!data.id) {
@@ -1938,7 +2074,7 @@ class StaffServices {
     // check dang lich
     const bookingExist = await db.Booking.findOne({
       where: {
-        healthExamScheduleId: {
+        healthExaminationScheduleId: {
           [Op.in]: schedules,
         },
       },

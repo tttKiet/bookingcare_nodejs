@@ -53,7 +53,7 @@ class StaffController {
 
   // [GET] /health-exam-schedule
   async handleGetHealthExamSchedule(req, res) {
-    const { limit, offset, staffId, date, workingId } = req.query;
+    const { limit, offset, staffId, date, workingId, type } = req.query;
     try {
       const data = await workServices.getHealthExamSchedule({
         limit,
@@ -62,7 +62,9 @@ class StaffController {
         date,
         workingId,
         raw: true,
+        type,
       });
+
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }
@@ -99,7 +101,7 @@ class StaffController {
 
   // [GET] /health-exam-schedule/all
   async handleGetHealthExamScheduleAll(req, res) {
-    const {
+    let {
       limit,
       offset,
       staffId,
@@ -115,8 +117,10 @@ class StaffController {
         staffId,
         date,
         workingId,
-        healthFacilityName,
-        staffName,
+        healthFacilityName: Array.isArray(healthFacilityName)
+          ? healthFacilityName?.[0]
+          : healthFacilityName,
+        staffName: Array.isArray(staffName) ? staffName?.[0] : staffName,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -294,7 +298,11 @@ class StaffController {
 
   async handleEditStatusBooking(req, res) {
     const { statusId, bookingId } = req.body;
-
+    const userLogin = req?.user;
+    var userId = "";
+    if (userLogin?.role?.keyType === "user") {
+      userId = userLogin?.id;
+    }
     if (!statusId || !bookingId) {
       return res.status(401).json({
         statusCode: 1,
@@ -305,6 +313,7 @@ class StaffController {
       const data = await staffServices.editStatusBooking({
         statusId,
         bookingId,
+        userId,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -395,6 +404,7 @@ class StaffController {
       birthDay,
       gender,
       cccd,
+      healthFacilityId,
       nation,
       addressCode,
       copyFromPatientProfileId,
@@ -426,6 +436,7 @@ class StaffController {
           phone,
           profession,
           email,
+          healthFacilityId,
           birthDay,
           gender,
           cccd,
@@ -675,7 +686,6 @@ class StaffController {
   // [DELETE] /api/v1/doctor/prescription-details
   async deleteSchedule(req, res) {
     const { schedule } = req.body;
-    console.log("\n\nschedule\n", schedule);
     if (!schedule || schedule?.length < 0)
       return res.status(404).json({
         statusCode: 1,

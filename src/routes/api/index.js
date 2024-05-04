@@ -13,5 +13,6 @@ router.use("/admin", adminRouter);
 router.use("/doctor", doctorRouter);
 router.use("/manager", managerRouter);
 router.use("/payment", paymentRouter);
+router.use("/test", adminRouter);
 
 export default router;

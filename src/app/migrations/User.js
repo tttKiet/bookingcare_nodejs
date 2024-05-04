@@ -29,6 +29,9 @@ module.exports = {
       gender: {
         type: Sequelize.STRING,
       },
+      banded: {
+        type: Sequelize.BOOLEAN,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

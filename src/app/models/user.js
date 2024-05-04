@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       phone: DataTypes.STRING,
       address: DataTypes.STRING,
       gender: DataTypes.STRING,
+      banded: { type: DataTypes.BOOLEAN, defaultValue: false },
     },
     {
       sequelize,

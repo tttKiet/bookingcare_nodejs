@@ -50,4 +50,11 @@ router
 // medical-record
 router.route("/medical-record").get(userController.handleGetMedicalRecord);
 
+// account
+router.route("/change-pass").post(userController.handleChangePass);
+
+// home
+// index 1
+router.get("/index", userController.handleGetIndex);
+
 export default router;

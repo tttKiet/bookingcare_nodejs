@@ -1,5 +1,6 @@
 import db from "../app/models";
-import { Op } from "sequelize";
+import { Op, where, Sequelize } from "sequelize";
+// import temp from "../untils/py/temp.json";
 
 class adminService {
   // Cedicine
@@ -270,6 +271,40 @@ class adminService {
       {
         where: {
           id: doctorId,
+        },
+      }
+    );
+    if (doc?.[0] > 0) {
+      return {
+        statusCode: 200,
+        msg: "Đã lưu thay đổi.",
+      };
+    }
+    return {
+      statusCode: 400,
+      msg: "Đã có lỗi xảy ra. Không có id này!",
+    };
+  }
+
+  async trigerLog({ userId, isBanded }) {
+    const user = await db.User.findOne({
+      where: { id: userId },
+      raw: true,
+    });
+
+    if (!user) {
+      return {
+        statusCode: 400,
+        msg: "Đã có lỗi xảy ra. Không tìm thấy người dùng này!",
+      };
+    }
+    const doc = await db.User.update(
+      {
+        banded: isBanded,
+      },
+      {
+        where: {
+          id: userId,
         },
       }
     );

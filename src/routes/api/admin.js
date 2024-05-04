@@ -3,6 +3,8 @@ import { uploadAwsS3, verifyTokenManager } from "../../middleWares";
 import express from "express";
 
 const router = express.Router();
+// test
+router.get("/test", adminController.adminTestApi);
 
 // Work
 router.post("/work", adminController.handleCreateOrUpdateWork);
@@ -54,7 +56,7 @@ router.get(
 );
 
 // HealthFacilities
-const uploadWithLimit = uploadAwsS3.array("images", 3);
+const uploadWithLimit = uploadAwsS3.array("images", 5);
 router.post(
   "/health-facilities",
   function (req, res, next) {
@@ -172,5 +174,8 @@ router.route("/hospital-service").get(adminController.handleGetHospitalService);
 
 //api/test/admin/test-email
 router.route("/test-email").get(adminController.handleTestEmail);
+
+// Log
+router.route("/log").post(adminController.handleTrigerLog);
 
 export default router;

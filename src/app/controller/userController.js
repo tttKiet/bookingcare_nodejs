@@ -34,13 +34,14 @@ class UserController {
 
   // [GET] /api/v1/user
   async handleGetUser(req, res) {
-    const { limit, offset, email, fullName } = req.query;
+    const { limit, offset, email, fullName, banded } = req.query;
     try {
       const data = await userServices.getUser({
         limit,
         offset,
         email,
         fullName,
+        banded,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -226,6 +227,15 @@ class UserController {
     }
 
     try {
+      const bandedUser = await userServices.checkBan({
+        userId,
+      });
+
+      if (bandedUser) {
+        return res.status(400).json({
+          msg: "Tài bạn của bạn đã bị ban, vui lòng liên hệ với admin để gỡ ban và thử lại!",
+        });
+      }
       const data = await userServices.createBooking({
         healthExaminationScheduleId,
         patientProfileId,
@@ -501,6 +511,61 @@ class UserController {
         healthRecordId,
         cccd,
       });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [POST] /api/v1/user/change-pass
+  async handleChangePass(req, res) {
+    const { password_old, password, rePassword } = req.body;
+    const user = req?.user;
+    let userId = "";
+    if (user?.role?.keyType !== "user") {
+      return res.status(401).json({
+        statusCode: 401,
+        msg: "Bạn chưa đăng nhập",
+      });
+    }
+    userId = user?.id;
+    if (!password_old || !password || !rePassword) {
+      return res.status(401).json({
+        statusCode: 1,
+        msg: "Thiếu tham số truyền vào.",
+      });
+    }
+
+    try {
+      const data = await userServices.changePass({
+        password_old,
+        password,
+        rePassword,
+        userId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      console.log(err);
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /api/v1/user/index
+  async handleGetIndex(req, res) {
+    const { page, index } = req.query;
+
+    try {
+      const data = await userServices.getIndex({ page, index });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }

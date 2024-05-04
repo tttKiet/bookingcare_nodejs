@@ -49,6 +49,14 @@ module.exports = {
         allowNull: false,
         type: Sequelize.UUID,
       },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
     });
   },
 

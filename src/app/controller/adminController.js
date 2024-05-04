@@ -186,6 +186,7 @@ class AdminController {
       district,
       province,
     } = req.query;
+
     try {
       const data = await healthFacilitiesServices.getHealthFacilities({
         id,
@@ -347,10 +348,15 @@ class AdminController {
 
   // [GET] /admin/health-facility/room
   async handleGetHealRoom(req, res) {
-    const { healthFacilityId } = req.query;
+    const { healthFacilityId, limit, offset } = req.query;
+    // console.log("limitlimit", { limit, offset });
 
     try {
-      const data = await healthFacilitiesServices.getRoom({ healthFacilityId });
+      const data = await healthFacilitiesServices.getRoom({
+        healthFacilityId,
+        limit,
+        offset,
+      });
 
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -606,7 +612,9 @@ class AdminController {
 
   // [GET] /admin/staff
   async handleGetStaff(req, res) {
-    const { limit, offset, email, fullName, type, doctorId } = req.query;
+    const { limit, offset, email, fullName, type, doctorId, isWorking, Role } =
+      req.query;
+
     try {
       const data = await staffServices.getStaff({
         limit,
@@ -614,7 +622,9 @@ class AdminController {
         email,
         fullName,
         type,
+        Role,
         doctorId,
+        isWorking,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -719,11 +729,14 @@ class AdminController {
       doctorName,
       id,
       doctorEmail,
+      limit,
+      offset,
       doctorId,
       healthFacilityName,
       healthFacilityId,
       type,
       roleId,
+      Role,
     } = req.query;
     const user = req?.user;
     if (user?.role?.keyType !== "admin") {
@@ -732,13 +745,18 @@ class AdminController {
 
     try {
       const data = await workServices.getWorking({
-        doctorName,
+        doctorName: Array.isArray(doctorName) ? doctorName?.[0] : doctorName,
+        limit,
+        offset,
         id,
         doctorEmail,
         doctorId,
-        healthFacilityName,
+        healthFacilityName: Array.isArray(healthFacilityName)
+          ? healthFacilityName?.[0]
+          : healthFacilityName,
         healthFacilityId,
         type,
+        Role,
         roleId,
       });
       if (data.statusCode === 0) {
@@ -1217,6 +1235,34 @@ class AdminController {
         content,
         html,
       });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // log
+  async handleTrigerLog(req, res) {
+    const { userId, isBanded = false } = req.body;
+    if (!userId) {
+      return res.status(400).json({ msg: "Thiếu tham số!" });
+    }
+    try {
+      const data = await adminServices.trigerLog({ userId, isBanded });
+      return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // test
+  async adminTestApi(req, res) {
+    try {
+      const data = await workServices.testapi();
       return res.status(data.statusCode).json(data);
     } catch (err) {
       return res

@@ -97,6 +97,11 @@ module.exports = {
           value: "Quá hạn",
         },
         {
+          name: "CheckUp",
+          key: "CU4",
+          value: "Đã hủy",
+        },
+        {
           name: "HealthRecord",
           key: "HR1",
           value: "Chờ khám",

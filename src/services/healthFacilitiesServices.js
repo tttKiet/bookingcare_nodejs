@@ -510,6 +510,7 @@ class healthFacilitiesServices {
 
   // Get Room
   async getRoom({ limit = 10, offset = 0, healthFacilityId }) {
+    console.log("limitlimit", { limit, offset });
     const whereQuery = {};
     const whereType = {};
     healthFacilityId && (whereQuery.healthFacilityId = healthFacilityId);

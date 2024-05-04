@@ -55,8 +55,11 @@ class UserServices {
   }
 
   // Account
-  async getUser({ offset = 0, limit = 10, email, fullName }) {
+  async getUser({ offset = 0, limit = 10, email, fullName, banded }) {
     const whereQuery = {};
+
+    banded && (whereQuery.banded = banded);
+
     email &&
       (whereQuery.email = {
         [Op.substring]: email,
@@ -234,7 +237,9 @@ class UserServices {
       wherePatientProfile.userId = userId;
       const docs = await db.PatientProfile.findAndCountAll({
         raw: true,
-        where: wherePatientProfile,
+        where: {
+          userId: userId,
+        },
         offset,
         limit,
         order: [["fullName", "asc"]],
@@ -1162,6 +1167,51 @@ class UserServices {
     }
   }
 
+  async changePass({ password_old, password, rePassword, userId }) {
+    const userPass = await db.User.findOne({
+      where: {
+        id: userId,
+      },
+      raw: true,
+    });
+    if (!userPass) {
+      return {
+        statusCode: 400,
+        msg: "Người dùng không tìm thấy.",
+      };
+    }
+    const passHash = await bcrypt.compare(password_old, userPass.password);
+    if (!passHash) {
+      return {
+        statusCode: 400,
+        msg: "Mật khẩu cũ không chính xácc.",
+      };
+    }
+    const passHashNew = await bcrypt.hash(password, saltRounds);
+    const reviewDocUpdate = await db.User.update(
+      {
+        password: passHashNew,
+      },
+      {
+        where: {
+          id: userId,
+        },
+      }
+    );
+    if (reviewDocUpdate[0] > 0) {
+      return {
+        statusCode: 0,
+        msg: "Đã thay đổi mật khẩu.",
+        data: reviewDocUpdate,
+      };
+    } else {
+      return {
+        statusCode: 4,
+        msg: "Mật khẩu mới trùng với mật khẩu cũ.",
+      };
+    }
+  }
+
   // Account
   async getReview({ offset = 0, limit = 10, staffId, userId, type }) {
     const whereQueryReview = {};
@@ -1400,6 +1450,66 @@ class UserServices {
     return {
       doctorList,
       healthFacilityList,
+    };
+  }
+
+  async checkBan({ userId }) {
+    const user = db.User.findOne({
+      where: {
+        id: userId,
+        banded: true,
+      },
+      raw: true,
+    });
+
+    return user;
+  }
+
+  // index use
+  async getIndex({ page, index }) {
+    let data = null;
+    switch (page) {
+      case "home": {
+        if (index == 1) {
+          data = await this.getIndexHome1();
+        }
+      }
+    }
+
+    return {
+      statusCode: 0,
+      msg: "Lấy Index thành công.",
+      data: data,
+    };
+  }
+
+  // function
+  async getIndexHome1() {
+    const patientCount = await db.Patient.count();
+    const reviewCount45 = await db.Review.count({
+      where: {
+        starNumber: {
+          [Op.gte]: 4,
+        },
+      },
+    });
+    const reviewCountTotal = await db.Review.count({});
+
+    const doctorCount = await db.Staff.count({
+      include: [
+        {
+          model: db.Role,
+          where: {
+            keyType: "doctor",
+          },
+        },
+      ],
+    });
+
+    return {
+      patientCount,
+      reviewCount: Math.round((reviewCount45 * 100) / (patientCount || 1)),
+      doctorCount,
     };
   }
 }

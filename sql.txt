@@ -1,0 +1,12 @@
+// staff
+
+INSERT INTO "Staffs" (id,"fullName", email, password, phone, address, gender, experience, 
+					certificate, "academicDegreeId", "specialistId", "roleId","createdAt","updatedAt")
+		VALUES 
+		('798d30eb-c5d1-4ee0-9b3f-89faa023e6de','Lại Thế Văn', 'thevan@gmail.com', 
+		
+		'$2b$10$iuH69vrqzsaadhYLa0QPN.PK5ToH6IL7KCOmnbEe.wPiLMSoYuFaK','09676888563', 
+		
+		'Vĩnh Phú, Vĩnh An, Châu Thành, An Giang', 'male', 'Từng có hai năm làm việc ở bệnh viện y dược Hà Nội.',
+		 'IELTS 9.0 Australia','480f5c52-abbd-4d28-9c9c-99c41feaafcf', 'b096d05b-4ef0-41ee-9c07-c5496773fe16', 
+		 'f1e9f129-da8d-4db0-93ee-46bb422fdebd','2023-11-11T04:36:01.800Z','2023-11-11T04:36:01.800Z');
