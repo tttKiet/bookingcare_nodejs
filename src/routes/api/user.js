@@ -47,6 +47,13 @@ router
   .post(requireLogin, userController.handleCreateOrUpdateReview)
   .delete(userController.handleDeleteReview);
 
+router
+  .route("/health-facility/review/index")
+  .get(userController.handleGetReviewIndexHealth);
+router
+  .route("/health-facility/review")
+  .get(userController.handleGetReviewHealth);
+
 // medical-record
 router.route("/medical-record").get(userController.handleGetMedicalRecord);
 

@@ -408,6 +408,7 @@ class UserServices {
     const count = await db.Booking.findAll({
       where: {
         healthExaminationScheduleId: healthExaminationScheduleId,
+        status: "CU2",
       },
     });
 
@@ -984,9 +985,10 @@ class UserServices {
         userId,
       },
     });
+    console.log("\n\n\n\n\npatientProfiles", patientProfiles);
 
     const dataPromiseBooking = patientProfiles.map(async (p) => {
-      const bookingDoc = await db.HealthRecord.findAndCountAll({
+      const bookingDoc = await db.HealthRecord.findAll({
         offset: 0,
         limit: 5,
         order: [["createdAt", "desc"]],
@@ -1005,6 +1007,7 @@ class UserServices {
             include: [
               {
                 model: db.HealthExaminationSchedule,
+                where: {},
                 include: [
                   {
                     model: db.Working,
@@ -1019,11 +1022,11 @@ class UserServices {
         ],
       });
 
-      return bookingDoc;
+      return bookingDoc || [];
     });
 
     const result = await Promise.all(dataPromiseBooking);
-    return result.filter((r) => r != null);
+    return result.filter((r) => r != null).flat();
   }
 
   async getBookingLastStaff5({ staffId }) {
@@ -1040,9 +1043,11 @@ class UserServices {
         db.Patient,
         {
           model: db.Booking,
+          where: {},
           include: [
             {
               model: db.HealthExaminationSchedule,
+              where: {},
               include: [
                 {
                   model: db.Working,
@@ -1061,6 +1066,7 @@ class UserServices {
       ],
     });
 
+    console.log("bookingDocbookingDoc", bookingDoc);
     return {
       statusCode: 200,
       msg: "Lấy dữ liệu thành công",
@@ -1099,6 +1105,7 @@ class UserServices {
           staffId: staffId,
         },
       });
+
       if (reviewExist)
         return {
           statusCode: 404,
@@ -1109,6 +1116,11 @@ class UserServices {
         userId,
         staffId,
       });
+
+      console.log(
+        "\n\n\nbookingLastStaffbookingLastStaffbookingLastStaffbookingLastStaff",
+        bookingLastStaff
+      );
 
       if (bookingLastStaff.length == 0) {
         return {
@@ -1213,8 +1225,50 @@ class UserServices {
   }
 
   // Account
-  async getReview({ offset = 0, limit = 10, staffId, userId, type }) {
+  async getReview({
+    offset = 0,
+    limit = 10,
+    staffId,
+    userId,
+    type,
+    healthFacilityId,
+  }) {
     const whereQueryReview = {};
+
+    // get all for clinic
+    if (healthFacilityId) {
+      const working = await workServices.getWorking({
+        Role: ["doctor"],
+        offset: 0,
+        limit: 500,
+        healthFacilityId,
+      });
+
+      const staffIds = working.data.rows.map((w) => w.staffId);
+      whereQueryReview.staffId = {
+        [Op.in]: staffIds,
+      };
+      const reviews = await db.Review.findAndCountAll({
+        raw: true,
+        offset,
+        limit,
+        where: whereQueryReview,
+        order: [["createdAt", "desc"]],
+        include: [db.Staff, db.User],
+        nest: true,
+      });
+
+      return {
+        statusCode: 0,
+        msg: "Lấy thông tin thành công.",
+        data: {
+          ...reviews,
+          limit: limit,
+          offset: offset,
+        },
+      };
+    }
+
     if (staffId) {
       whereQueryReview.staffId = staffId;
     }
@@ -1248,7 +1302,82 @@ class UserServices {
     };
   }
 
-  async calculatorReviewDoctorById({ staffId }) {
+  async calculatorReviewDoctorById({ staffId, healthFacilityId }) {
+    if (healthFacilityId) {
+      const working = await workServices.getWorking({
+        Role: ["doctor"],
+        offset: 0,
+        limit: 500,
+        healthFacilityId,
+      });
+      const staffIds = working.data.rows.map((w) => w.staffId);
+      const staffStar = await Promise.all(
+        staffIds.map((s) =>
+          staffServices.calculatorReviewDoctor({ staffId: s })
+        )
+      );
+      // return { statusCode: 0, data: staffStar };
+
+      const star5 = Number.parseFloat(
+        staffStar.reduce((init, s) => init + s.star.star5, 0).toFixed(2)
+      );
+      const star4 = Number.parseFloat(
+        staffStar.reduce((init, s) => init + s.star.star4, 0).toFixed(2)
+      );
+      const star3 = Number.parseFloat(
+        staffStar.reduce((init, s) => init + s.star.star3, 0).toFixed(2)
+      );
+      const star2 = Number.parseFloat(
+        staffStar.reduce((init, s) => init + s.star.star2, 0).toFixed(2)
+      );
+      const star1 = Number.parseFloat(
+        staffStar.reduce((init, s) => init + s.star.star1, 0).toFixed(2)
+      );
+
+      const countReview = Number.parseFloat(
+        staffStar.reduce((init, s) => init + s.countReview, 0)
+      );
+      const sumStar = staffStar.reduce(
+        (init, s) =>
+          init +
+          s.star.star5 * 5 +
+          s.star.star4 * 4 +
+          s.star.star3 * 3 +
+          s.star.star2 * 2 +
+          s.star.star1 * 1,
+        0
+      );
+      const avg = sumStar / (countReview || 1);
+
+      const data = {
+        countReview: countReview,
+        avg: avg == 0 ? 5 : Number.parseFloat(avg.toFixed(2)),
+        star: {
+          star5,
+          star4,
+          star3,
+          star2,
+          star1,
+        },
+      };
+
+      return {
+        statusCode: 200,
+        msg: "Lấy thành công",
+        data: {
+          reviewIndex: data,
+          healthFacility: working.data.rows[0].HealthFacility,
+        },
+      };
+    }
+
+    if (!staffId) {
+      return {
+        statusCode: 400,
+        msg: "Vui lòng truyền staffId.",
+      };
+    }
+
     const views = await staffServices.calculatorReviewDoctor({ staffId });
     return {
       statusCode: 200,

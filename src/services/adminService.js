@@ -1,3 +1,4 @@
+import moment from "moment";
 import db from "../app/models";
 import { Op, where, Sequelize } from "sequelize";
 // import temp from "../untils/py/temp.json";
@@ -317,6 +318,146 @@ class adminService {
     return {
       statusCode: 400,
       msg: "Đã có lỗi xảy ra. Không có id này!",
+    };
+  }
+
+  // chart
+  async getIndexAdminHome1() {
+    const patientCount = await db.Patient.count({
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn("date_part", "month", Sequelize.col("createdAt")),
+            moment().month() + 1
+          ),
+        ],
+      },
+    });
+    const patientCountLast = await db.Patient.count({
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn("date_part", "month", Sequelize.col("createdAt")),
+            moment().month()
+          ),
+        ],
+      },
+    });
+
+    const bookingCount = await db.HealthRecord.count({
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn("date_part", "month", Sequelize.col("createdAt")),
+            moment().month() + 1
+          ),
+        ],
+      },
+    });
+
+    const bookingCountLastMonth = await db.HealthRecord.count({
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn("date_part", "month", Sequelize.col("createdAt")),
+            moment().month()
+          ),
+        ],
+      },
+    });
+
+    const bookingCountSuccess = await db.HealthRecord.findAll({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Booking,
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.col("HealthRecord.createdAt")
+            ),
+            moment().month() + 1
+          ),
+        ],
+        statusCode: "HR4",
+      },
+    });
+
+    const sumRenvenueMonth = bookingCountSuccess.reduce(
+      (init, v) => init + v.Booking.doctorPrice,
+      0
+    );
+
+    const bookingCountSuccessLast = await db.HealthRecord.findAll({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Booking,
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.col("HealthRecord.createdAt")
+            ),
+            moment().month()
+          ),
+        ],
+        statusCode: "HR4",
+      },
+    });
+    const sumRenvenueMonthLast = bookingCountSuccessLast.reduce(
+      (init, v) => init + v.Booking.doctorPrice,
+      0
+    );
+
+    return {
+      booking: {
+        month: bookingCount,
+        lastMonth: bookingCountLastMonth,
+      },
+      bookingSuccess: {
+        month: bookingCountSuccess.length,
+        lastMonth: bookingCountSuccessLast.length,
+      },
+      revenue: {
+        month: sumRenvenueMonth,
+        lastMonth: sumRenvenueMonthLast,
+      },
+      patient: {
+        month: patientCount,
+        lastMonth: patientCountLast,
+      },
+    };
+  }
+  // index use
+  async getIndex({ role, page, index }) {
+    let data = null;
+    if (role == "admin") {
+      switch (page) {
+        case "home": {
+          if (index == 1) {
+            data = await this.getIndexAdminHome1();
+          }
+        }
+      }
+    } else if (role == "doctor") {
+    }
+
+    return {
+      statusCode: 0,
+      msg: "Lấy Index thành công.",
+      data: data,
     };
   }
 }

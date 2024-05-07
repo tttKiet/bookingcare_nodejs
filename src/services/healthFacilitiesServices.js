@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import db, { sequelize, Sequelize } from "../app/models";
 import { v4 as uuidv4 } from "uuid";
 import { deleteImagesFromS3, searchLikeDeep } from "../untils";
+import userServices from "./userServices";
 
 class healthFacilitiesServices {
   // create type health facility
@@ -295,10 +296,26 @@ class healthFacilitiesServices {
       order: [["createdAt", "desc"]],
     });
 
+    // get star
+    const stars = await Promise.all(
+      healthFacilitiesDocs.rows.map(async (h) => {
+        const starIndex = await userServices.calculatorReviewDoctorById({
+          healthFacilityId: h.id,
+        });
+        return {
+          ...h,
+          reviewIndex: starIndex.data.reviewIndex,
+        };
+      })
+    );
+
     return {
       statusCode: 0,
       msg: "Lấy thành công",
-      data: healthFacilitiesDocs,
+      data: {
+        ...healthFacilitiesDocs,
+        rows: stars,
+      },
     };
   }
   // Update Health Facility

@@ -2044,8 +2044,6 @@ class StaffServices {
     const sumReview = revs.reduce((init, value) => {
       return init + value.starNumber;
     }, 0);
-    console.log("\n\n\n\nsumReviewsumReview\n\n", sumReview);
-    console.log("revs\n\n", revs.length);
 
     const avg = sumReview / (revs.length || 1);
 
@@ -2057,7 +2055,7 @@ class StaffServices {
 
     const views = {
       countReview: revs.length,
-      avg: avg,
+      avg: avg == 0 ? 5 : Number.parseFloat(avg.toFixed(2)),
       star: {
         star5: star5,
         star4: star4,

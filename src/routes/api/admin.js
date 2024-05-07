@@ -178,4 +178,7 @@ router.route("/test-email").get(adminController.handleTestEmail);
 // Log
 router.route("/log").post(adminController.handleTrigerLog);
 
+// chart
+router.route("/chart").get(adminController.handleGetChart);
+
 export default router;

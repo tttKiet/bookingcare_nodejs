@@ -91,21 +91,24 @@ class PaymentController {
     var signData = querystring.stringify(vnp_Params, { encode: false });
     var hmac = crypto.createHmac("sha512", secretKey);
     var signed = hmac.update(new Buffer(signData, "utf-8")).digest("hex");
-    // console.log("signed", signed);
-    if (secureHash === signed) {
-      var orderId = vnp_Params["vnp_TxnRef"];
-      var rspCode = vnp_Params["vnp_ResponseCode"];
+    console.log(
+      '\n\nvnp_Params["vnp_ResponseCode"]vnp_Params["vnp_ResponseCode"]',
+      vnp_Params["vnp_ResponseCode"]
+    );
+    var orderId = vnp_Params["vnp_TxnRef"];
+    var rspCode = vnp_Params["vnp_ResponseCode"];
 
+    if (rspCode !== "00") {
       const updateBooking = await userServices.updateStatusBooking({
-        status: "CU2",
+        status: "CU4",
         bookingId: orderId,
-        sendEmail: true,
+        sendEmail: false,
       });
 
       if (updateBooking.statusCode == 0) {
         return res.status(200).json({
-          statusCode: 200,
-          msg: "Đơn hàng đã được thanh toán thành công.",
+          statusCode: 406,
+          msg: "Lịch hẹn đã bị hủy.",
           data: updateBooking.data,
         });
       } else {
@@ -114,6 +117,49 @@ class PaymentController {
           msg: "Đơn hàng đã bị xóa hoặc không tìm thấy.",
         });
       }
+    }
+
+    if (secureHash === signed) {
+      if (rspCode == "00") {
+        const updateBooking = await userServices.updateStatusBooking({
+          status: "CU2",
+          bookingId: orderId,
+          sendEmail: true,
+        });
+
+        if (updateBooking.statusCode == 0) {
+          return res.status(200).json({
+            statusCode: 200,
+            msg: "Đơn hàng đã được thanh toán thành công.",
+            data: updateBooking.data,
+          });
+        } else {
+          return res.status(updateBooking.statusCode).json({
+            statusCode: updateBooking.statusCode,
+            msg: "Đơn hàng đã bị xóa hoặc không tìm thấy.",
+          });
+        }
+      } else {
+        const updateBooking = await userServices.updateStatusBooking({
+          status: "CU4",
+          bookingId: orderId,
+          sendEmail: false,
+        });
+
+        if (updateBooking.statusCode == 0) {
+          return res.status(200).json({
+            statusCode: 200,
+            msg: "Đơn hàng đã được thanh toán thành công.",
+            data: updateBooking.data,
+          });
+        } else {
+          return res.status(updateBooking.statusCode).json({
+            statusCode: updateBooking.statusCode,
+            msg: "Đơn hàng đã bị xóa hoặc không tìm thấy.",
+          });
+        }
+      }
+
       // Kiem tra du lieu co hop le khong, cap nhat trang thai don hang va gui ket qua cho VNPAY theo dinh dang duoi
 
       // res.status(200).json({ code: vnp_Params["vnp_ResponseCode"] });

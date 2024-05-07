@@ -379,6 +379,12 @@ class UserController {
     let userId = "";
     if (user?.role?.keyType !== "admin") {
       userId = user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          statusCode: 1,
+          msg: "Chưa đăng nhập.",
+        });
+      }
     }
     if (!id && (!staffId || !starNumber || !description || !userId)) {
       return res.status(401).json({
@@ -409,7 +415,7 @@ class UserController {
 
   // [GET] /api/v1/user/review
   async handleGetReview(req, res) {
-    const { limit, offset, staffId, type } = req.query;
+    const { limit, offset, staffId, type, starNumber } = req.query;
     const user = req?.user;
     let userId = "";
 
@@ -442,6 +448,48 @@ class UserController {
     try {
       const data = await userServices.calculatorReviewDoctorById({
         staffId,
+      });
+      if (data.statusCode === 200) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /api/v1/user/health-facility/review
+  async handleGetReviewHealth(req, res) {
+    const { limit, offset, staffId, type, starNumber, healthFacilityId } =
+      req.query;
+
+    try {
+      const data = await userServices.getReview({
+        limit,
+        offset,
+        type,
+        healthFacilityId,
+      });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+  // [GET] /api/v1/user/health-facility/review/index
+  async handleGetReviewIndexHealth(req, res) {
+    const { healthFacilityId, staffId } = req.query;
+
+    try {
+      const data = await userServices.calculatorReviewDoctorById({
+        staffId,
+        healthFacilityId,
       });
       if (data.statusCode === 200) {
         return res.status(200).json(data);

@@ -81,7 +81,6 @@ export function removeAccentsAndLowerCase(str) {
 }
 
 export function searchLikeDeep(dbName, colName, value) {
-  console.log();
   const wordsToSearch = removeAccentsAndLowerCase(value)
     .split(/\s+/)
     .filter(Boolean);

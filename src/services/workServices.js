@@ -649,6 +649,18 @@ class WorkServices {
             },
             {
               model: db.ClinicRoom,
+              on: {
+                [Op.and]: [
+                  {
+                    roomNumber: {
+                      [Op.col]: "WorkRoom.ClinicRoomRoomNumber",
+                    },
+                    healthFacilityId: {
+                      [Op.col]: "WorkRoom.ClinicRoomHealthFacilityId",
+                    },
+                  },
+                ],
+              },
               include: [
                 {
                   model: db.HealthFacility,
@@ -664,11 +676,15 @@ class WorkServices {
           order: [["applyDate", "DESC"]],
         }),
         this.getHealthExamScheduleToDate(working.staffId),
+        userServices.calculatorReviewDoctorById({ staffId: working.staffId }),
       ]);
     });
 
     const workRoomAndSchedule = await Promise.all(promiseAll);
-
+    // return {
+    //   statusCode: 0,
+    //   data: workRoomAndSchedule ,
+    // };
     return {
       statusCode: 0,
       msg: "Lấy thông tin thành công.",
@@ -676,10 +692,11 @@ class WorkServices {
         // rows: listWorkRoom,
         rows: workRoomAndSchedule
           .filter(([workRoom]) => workRoom !== null)
-          .map(([workRoom, schedule]) => {
+          .map(([workRoom, schedule, star]) => {
             return {
               ...workRoom,
               schedules: schedule || [],
+              starNumber: star?.data?.avg,
             };
           }),
         limit: limit,
@@ -1770,14 +1787,8 @@ class WorkServices {
     // const data = await db.HealthExaminationSchedule.findAll({
     //   raw: true,
     // });
-    const sch = await db.HealthExaminationSchedule.findAll({ raw: true });
 
-    const whereRole = {};
-    whereRole.keyType = {
-      [Op.in]: ["doctor"],
-    };
-
-    const workingDoc = await db.WorkRoom.findAll({
+    const workingDoc = await db.ServiceDetail.findAll({
       raw: true,
       nest: true,
     });

@@ -2,6 +2,7 @@ import {
   adminServices,
   authServices,
   healthFacilitiesServices,
+  userServices,
   workServices,
 } from "../../services";
 // import { uploadAwsS3, s3 } from "../../middleWares";
@@ -620,7 +621,7 @@ class AdminController {
         limit,
         offset,
         email,
-        fullName,
+        fullName: Array.isArray(fullName) ? fullName[0] : fullName,
         type,
         Role,
         doctorId,
@@ -1264,6 +1265,24 @@ class AdminController {
     try {
       const data = await workServices.testapi();
       return res.status(data.statusCode).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // chart
+  // [GET] /api/v1/admin/chart
+  async handleGetChart(req, res) {
+    const { role, page, index } = req.query;
+
+    try {
+      const data = await adminServices.getIndex({ role, page, index });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
     } catch (err) {
       return res
         .status(500)
