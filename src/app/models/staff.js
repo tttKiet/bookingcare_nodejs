@@ -31,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
       Staff.hasMany(models.Review, {
         foreignKey: "staffId",
       });
+
+      Staff.hasMany(models.ChatRoom, {
+        foreignKey: "staffId",
+      });
     }
   }
   Staff.init(

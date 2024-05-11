@@ -41,11 +41,10 @@ export async function verifyToken(req, res, next) {
 
 // Forwards Login or not login
 export async function requireLogin(req, res, next) {
-  console.log("req?.userreq?.user", req?.user);
   if (req?.user) {
     next();
   } else {
-    return res.status(400).json({ msg: "You are not logged in." });
+    return res.status(400).json({ msg: "Bạn chưa đăng nhập." });
   }
 }
 
@@ -71,7 +70,9 @@ export async function verifyTokenManager(req, res, next) {
     ) {
       next();
     } else if (!req?.user?.role?.id) {
-      return res.status(401).json({ statusCode: 1, msg: "You are not login." });
+      return res
+        .status(401)
+        .json({ statusCode: 1, msg: "Bạn chưa đăng nhập." });
     } else {
       return res
         .status(403)

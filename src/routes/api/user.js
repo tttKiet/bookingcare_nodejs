@@ -38,12 +38,10 @@ router.post("/", userController.handleCreateOrUpdateUser);
 router.get("/", userController.handleGetUser);
 
 // review
-router
-  .route("/review/index")
-  .get(requireLogin, userController.handleGetReviewIndex);
+router.route("/review/index").get(userController.handleGetReviewIndex);
 router
   .route("/review")
-  .get(requireLogin, userController.handleGetReview)
+  .get(userController.handleGetReview)
   .post(requireLogin, userController.handleCreateOrUpdateReview)
   .delete(userController.handleDeleteReview);
 

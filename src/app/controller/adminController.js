@@ -8,6 +8,7 @@ import {
 // import { uploadAwsS3, s3 } from "../../middleWares";
 import { deleteImagesFromS3, sendEmail } from "../../untils";
 import staffServices from "../../services/staffServices";
+import chatServices from "../../services/chatServices";
 class AdminController {
   // [POST] /admin/health-facilities/type
   async handleCreateTypeHealthFacilities(req, res) {
@@ -1275,10 +1276,43 @@ class AdminController {
   // chart
   // [GET] /api/v1/admin/chart
   async handleGetChart(req, res) {
-    const { role, page, index } = req.query;
+    const { role, page, index, ...pagrams } = req.query;
 
     try {
-      const data = await adminServices.getIndex({ role, page, index });
+      const data = await adminServices.getIndex({ role, page, index, pagrams });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  // [GET] /api/v1/admin/chat/room
+  async handleGetRoom(req, res) {
+    const { staffId, userId } = req.query;
+
+    try {
+      const data = await chatServices.getRoom({ staffId, userId });
+      if (data.statusCode === 0) {
+        return res.status(200).json(data);
+      }
+      return res.status(400).json(data);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ msg: err?.message || "Lỗi server. Thử lại sau!" });
+    }
+  }
+
+  async handleGetRoomMessage(req, res) {
+    const { chatRoomId } = req.query;
+
+    try {
+      const data = await chatServices.getRoomMessage({ chatRoomId });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }

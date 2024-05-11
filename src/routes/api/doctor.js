@@ -35,7 +35,7 @@ router
 // booking
 router
   .route("/booking")
-  .get(verifyToken, requireLogin, staffController.handleGetBooking)
+  .get(verifyToken, staffController.handleGetBooking)
   .post(verifyToken, requireLogin, staffController.handleEditStatusBooking);
 
 // router.get(

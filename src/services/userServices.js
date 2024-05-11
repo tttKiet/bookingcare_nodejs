@@ -1,5 +1,5 @@
-import { Op, where } from "sequelize";
-import db from "../app/models";
+import { NUMBER, Op, where } from "sequelize";
+import db, { Sequelize, sequelize } from "../app/models";
 import bcrypt from "bcrypt";
 import workServices from "./workServices";
 import { raw } from "express";
@@ -611,6 +611,7 @@ class UserServices {
           model: db.Code,
         },
       ],
+      order: [[db.HealthExaminationSchedule, "date", "desc"]],
     });
 
     const dataPromise = bookingDoc.rows.map(async (b) => {
@@ -1231,7 +1232,9 @@ class UserServices {
     staffId,
     userId,
     type,
+    starNumber,
     healthFacilityId,
+    unique,
   }) {
     const whereQueryReview = {};
 
@@ -1269,15 +1272,19 @@ class UserServices {
       };
     }
 
+    if (starNumber) {
+      whereQueryReview.starNumber = starNumber;
+    }
+
     if (staffId) {
       whereQueryReview.staffId = staffId;
     }
 
-    if (type == "notme") {
+    if (type == "notme" && userId) {
       whereQueryReview.userId = {
         [Op.not]: userId,
       };
-    } else if (userId) {
+    } else if (userId && type != "all") {
       whereQueryReview.userId = userId;
     }
 
@@ -1595,12 +1602,30 @@ class UserServices {
   }
 
   // index use
-  async getIndex({ page, index }) {
+  async getIndex({ page, index, pagrams }) {
     let data = null;
     switch (page) {
       case "home": {
         if (index == 1) {
           data = await this.getIndexHome1();
+          break;
+        }
+
+        if (index == 2) {
+          data = await this.getIndexHome2();
+          break;
+        }
+      }
+
+      case "profile": {
+        if (index == 1) {
+          data = await this.getIndexProfile1(pagrams);
+          break;
+        }
+
+        if (index == 2) {
+          data = await this.getIndexProfile2(pagrams);
+          break;
         }
       }
     }
@@ -1639,6 +1664,180 @@ class UserServices {
       patientCount,
       reviewCount: Math.round((reviewCount45 * 100) / (patientCount || 1)),
       doctorCount,
+    };
+  }
+
+  async getIndexHome2() {
+    console.log("/n/n/n\n\n\n\n\n\n\n---");
+    const reviewCount = await db.Review.count();
+    const reviewAvg = await db.Review.findOne({
+      raw: true,
+      attributes: [
+        [sequelize.fn("AVG", sequelize.col("Review.starNumber")), "avgRating"],
+      ],
+    });
+
+    return {
+      reviewCount,
+      reviewAvg: Number.parseFloat(reviewAvg.avgRating).toPrecision(2),
+    };
+  }
+
+  async getIndexProfile1({ userId }) {
+    if (!userId) return null;
+    const reviewCount = await db.Review.count({
+      where: {
+        userId,
+      },
+    });
+
+    const patientProfileCount = await db.PatientProfile.count({
+      where: {
+        userId,
+      },
+    });
+
+    const bookingSum = await db.Booking.findAll({
+      raw: true,
+      nest: true,
+      where: {
+        status: "CU2",
+      },
+      include: [
+        {
+          model: db.PatientProfile,
+          where: {
+            userId,
+          },
+        },
+      ],
+      // group: ["Booking.PatientProfile.userId"],
+    });
+
+    const sumPrice = bookingSum.reduce((init, v) => init + v.doctorPrice, 0);
+
+    return {
+      reviewCount,
+      patientProfileCount,
+      bookingSum: sumPrice,
+    };
+  }
+
+  async getIndexProfile2({ year, userId }) {
+    const patientProfileDoc = await db.PatientProfile.findAll({
+      where: {
+        userId,
+      },
+      raw: true,
+    });
+
+    // top patient
+
+    const bookingPromiseTop = patientProfileDoc.map(async (b) => {
+      const bookingDoc = await db.Booking.count({
+        raw: true,
+        nest: true,
+        where: {
+          patientProfileId: b.id,
+          status: "CU2",
+        },
+      });
+      return {
+        patientProfile: b,
+        bookingCount: bookingDoc,
+      };
+    });
+
+    const profileAndBookingTop = await Promise.all(bookingPromiseTop);
+
+    const maxObject = profileAndBookingTop.reduce(
+      (max, obj) => (obj.bookingCount > max.bookingCount ? obj : max),
+      profileAndBookingTop[0]
+    );
+
+    const bookingLast = await db.Booking.findAll({
+      raw: true,
+      nest: true,
+      where: {
+        patientProfileId: maxObject?.patientProfile?.id,
+      },
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          include: [
+            {
+              model: db.Working,
+              include: [
+                {
+                  model: db.Staff,
+                },
+              ],
+            },
+            {
+              model: db.Code,
+              as: "TimeCode",
+            },
+          ],
+        },
+      ],
+      limit: 3,
+      offset: 0,
+      order: [["createdAt", "desc"]],
+    });
+
+    // return bookingLast;
+
+    if (!year)
+      return {
+        maxObject,
+      };
+
+    // chart
+
+    const bookingPromise = patientProfileDoc.map(async (b) => {
+      const bookingDoc = await db.Booking.findAll({
+        raw: true,
+        nest: true,
+        where: {
+          patientProfileId: b.id,
+          [Op.and]: [
+            Sequelize.where(
+              Sequelize.fn(
+                "date_part",
+                "year",
+                Sequelize.col("Booking.createdAt")
+              ),
+              year
+            ),
+          ],
+        },
+      });
+      return {
+        patientProfile: b,
+        booking: bookingDoc,
+      };
+    });
+
+    const profileAndBooking = await Promise.all(bookingPromise);
+
+    const cal = profileAndBooking.map((d) => {
+      const array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+      d.booking.map((r) => {
+        const month = new Date(r.createdAt).getMonth();
+        array[month] += 1;
+      });
+
+      return {
+        patientProfile: d.patientProfile,
+        data: array,
+      };
+    });
+
+    return {
+      chart: cal,
+      max: maxObject,
+      bookingLastMax: bookingLast,
     };
   }
 }

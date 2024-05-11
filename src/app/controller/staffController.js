@@ -139,6 +139,10 @@ class StaffController {
     var staffIdLogin;
     if (user?.role?.keyType !== "admin") {
       staffIdLogin = user?.id;
+      if (!staffIdLogin)
+        return res
+          .status(401)
+          .json({ statusCode: 401, msg: "Bạn chưa đăng nhập" });
     }
 
     const {
@@ -152,10 +156,7 @@ class StaffController {
       bookingId,
       staffId,
     } = req.query;
-    if (!staffIdLogin)
-      return res
-        .status(401)
-        .json({ statusCode: 401, msg: "Bạn chưa đăng nhập" });
+
     try {
       const data = await staffServices.getBooking({
         offset,

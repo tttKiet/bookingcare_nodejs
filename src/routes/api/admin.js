@@ -178,6 +178,10 @@ router.route("/test-email").get(adminController.handleTestEmail);
 // Log
 router.route("/log").post(adminController.handleTrigerLog);
 
+// Chat
+router.route("/chat/room-message").get(adminController.handleGetRoomMessage);
+router.route("/chat/room").get(adminController.handleGetRoom);
+
 // chart
 router.route("/chart").get(adminController.handleGetChart);
 

@@ -344,7 +344,7 @@ class adminService {
       },
     });
 
-    const bookingCount = await db.HealthRecord.count({
+    const bookingCount = await db.Booking.count({
       where: {
         [Op.and]: [
           Sequelize.where(
@@ -355,7 +355,7 @@ class adminService {
       },
     });
 
-    const bookingCountLastMonth = await db.HealthRecord.count({
+    const bookingCountLastMonth = await db.Booking.count({
       where: {
         [Op.and]: [
           Sequelize.where(
@@ -440,18 +440,683 @@ class adminService {
       },
     };
   }
+
+  async getIndexAdminHome2({ year }) {
+    if (!year) return null;
+    const patientDoc = await db.Patient.findAll({
+      raw: true,
+      nest: true,
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "year",
+              Sequelize.col("Patient.createdAt")
+            ),
+            year
+          ),
+        ],
+      },
+    });
+    const array1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const array2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    const maleCount = patientDoc
+      .filter((p) => p.gender == "male")
+      .map((r) => {
+        const month = new Date(r.createdAt).getMonth();
+        array1[month] += 1;
+      });
+
+    const femaleCount = patientDoc
+      .filter((p) => p.gender == "female")
+      .map((r) => {
+        const month = new Date(r.createdAt).getMonth();
+        array2[month] += 1;
+      });
+    return {
+      male: array1,
+      female: array2,
+    };
+  }
+
+  async getIndexAdminHome3() {
+    const bookingDoc = await db.Booking.findAll({
+      where: {
+        status: "CU2",
+      },
+      nest: true,
+      raw: true,
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          include: [
+            {
+              model: db.Working,
+              include: [
+                {
+                  model: db.Staff,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const specialistIds = bookingDoc.map(
+      (s) => s.HealthExaminationSchedule.Working.Staff.specialistId
+    );
+    const specialistIdUniques = [...new Set(specialistIds)];
+
+    const cacularPromises = specialistIdUniques.map(async (id) => {
+      const bookingCount = await db.Booking.count({
+        where: {
+          status: "CU2",
+        },
+        nest: true,
+        raw: true,
+        include: [
+          {
+            model: db.HealthExaminationSchedule,
+            where: {},
+            include: [
+              {
+                model: db.Working,
+                where: {},
+                include: [
+                  {
+                    model: db.Staff,
+                    where: {},
+                    include: [
+                      {
+                        model: db.Specialist,
+                        where: {
+                          id: id,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      const specialist = await db.Specialist.findOne({
+        raw: true,
+        where: {
+          id,
+        },
+      });
+      return {
+        specialist,
+        count: bookingCount,
+        percent: ((bookingCount * 100) / bookingDoc.length).toPrecision(2),
+      };
+    });
+
+    const data = await Promise.all(cacularPromises);
+
+    return data;
+  }
+
+  async getIndexAdminService1() {
+    const serviceActive = await db.HospitalService.count({
+      where: {
+        isAcctive: true,
+      },
+    });
+    const serviceNonActive = await db.HospitalService.count({
+      where: {
+        isAcctive: false,
+      },
+    });
+
+    return {
+      serviceActive,
+      serviceNonActive,
+    };
+  }
+
+  async getIndexDoctorHome1({ staffId }) {
+    if (!staffId) return null;
+    const bookingCountSuccess = await db.HealthRecord.findAll({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Booking,
+          where: {},
+          include: [
+            {
+              model: db.HealthExaminationSchedule,
+              where: {},
+
+              include: [
+                {
+                  model: db.Working,
+                  where: {},
+
+                  where: {
+                    staffId,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.col("HealthRecord.createdAt")
+            ),
+            moment().month() + 1
+          ),
+        ],
+        statusCode: "HR4",
+      },
+    });
+
+    const bookingCountLastMonth = await db.Booking.count({
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.col("Booking.createdAt")
+            ),
+            moment().month()
+          ),
+        ],
+      },
+    });
+
+    const bookingCountSum = await db.Booking.count({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    // patient
+    const patientCountHere = await db.Booking.findAll({
+      model: db.Booking,
+      nest: true,
+      raw: true,
+      include: [
+        db.PatientProfile,
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.col("Booking.createdAt")
+            ),
+            moment().month() + 1
+          ),
+        ],
+      },
+    });
+
+    const patientIdDistances = [
+      ...new Set(patientCountHere.map((s) => s.patientProfileId)),
+    ];
+
+    const patientCountLast = await db.Booking.findAll({
+      model: db.Booking,
+      nest: true,
+      raw: true,
+      include: [
+        db.PatientProfile,
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.col("Booking.createdAt")
+            ),
+            moment().month()
+          ),
+        ],
+      },
+    });
+
+    const patientIdDistancesLast = [
+      ...new Set(patientCountLast.map((s) => s.patientProfileId)),
+    ];
+
+    const patientCountSum = await db.Booking.findAll({
+      model: db.Booking,
+      nest: true,
+      raw: true,
+      include: [
+        db.PatientProfile,
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const patientIdDistancesSum = [
+      ...new Set(patientCountSum.map((s) => s.patientProfileId)),
+    ];
+    // chat
+    const chatCountHere = await db.ChatRoom.count({
+      where: {
+        staffId,
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn("date_part", "month", Sequelize.col("createdAt")),
+            moment().month() + 1
+          ),
+        ],
+      },
+    });
+    const chatCountLast = await db.ChatRoom.count({
+      where: {
+        staffId,
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn("date_part", "month", Sequelize.col("createdAt")),
+            moment().month()
+          ),
+        ],
+      },
+    });
+    const chatCountSum = await db.ChatRoom.count({
+      where: {
+        staffId,
+      },
+    });
+
+    // code
+    const scheduleCountHere = await db.HealthExaminationSchedule.count({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Working,
+          where: {
+            staffId,
+          },
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.fn("TO_DATE", Sequelize.col("date"), "MM/DD/YYYY")
+            ),
+            moment().month() + 1
+          ),
+        ],
+      },
+    });
+
+    const scheduleCountLast = await db.HealthExaminationSchedule.count({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Working,
+          where: {
+            staffId,
+          },
+        },
+      ],
+      where: {
+        [Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "date_part",
+              "month",
+              Sequelize.fn("TO_DATE", Sequelize.col("date"), "MM/DD/YYYY")
+            ),
+            moment().month()
+          ),
+        ],
+      },
+    });
+
+    const scheduleCountSum = await db.HealthExaminationSchedule.count({
+      raw: true,
+      nest: true,
+      include: [
+        {
+          model: db.Working,
+          where: {
+            staffId,
+          },
+        },
+      ],
+      where: {},
+    });
+
+    return {
+      booking: {
+        bookingCountSuccess: bookingCountSuccess.length,
+        bookingCountLastMonth,
+        bookingCountSum,
+      },
+      patient: {
+        patientCountHere: patientIdDistances.length,
+        patientCountLast: patientIdDistancesLast.length,
+        patientCountSum: patientIdDistancesSum.length,
+      },
+
+      chat: {
+        chatCountHere,
+        chatCountLast,
+        chatCountSum,
+      },
+      schedule: {
+        scheduleCountHere,
+        scheduleCountLast,
+        scheduleCountSum,
+      },
+    };
+  }
+
+  async getIndexDoctorHome2({ year, staffId }) {
+    if (!year || !staffId) return null;
+    const array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const bookings = await db.Booking.findAll({
+      raw: true,
+      nest: true,
+      where: {
+        status: "CU2",
+      },
+      include: [
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    bookings.map((r) => {
+      const month = new Date(r.HealthExaminationSchedule.date).getMonth();
+      const yearHere = new Date(r.HealthExaminationSchedule.date).getFullYear();
+
+      if (year == yearHere) array[month] += r.doctorPrice;
+    });
+    return {
+      data: array,
+    };
+  }
+
+  async getIndexDoctorHome3({ staffId }) {
+    if (!staffId) return null;
+    const bookingMale = await db.Booking.count({
+      raw: true,
+      nest: true,
+      where: {
+        status: "CU2",
+      },
+      include: [
+        {
+          model: db.PatientProfile,
+          where: {
+            gender: "male",
+          },
+        },
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const bookingFeMale = await db.Booking.count({
+      raw: true,
+      nest: true,
+      where: {
+        status: "CU2",
+      },
+      include: [
+        {
+          model: db.PatientProfile,
+          where: {
+            gender: "female",
+          },
+        },
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    return {
+      bookingMale,
+      bookingFeMale,
+    };
+  }
+
+  async getIndexDoctorHome4({ staffId }) {
+    if (!staffId) return null;
+    const bookingDoc = await db.Booking.findAll({
+      raw: true,
+      nest: true,
+      where: {
+        status: "CU2",
+      },
+      include: [
+        {
+          model: db.PatientProfile,
+          where: {},
+        },
+        {
+          model: db.HealthExaminationSchedule,
+          where: {},
+          include: [
+            {
+              model: db.Working,
+              where: {
+                staffId,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const keyWordPatient = bookingDoc.map((b) => b.descriptionDisease);
+
+    const patientProfileIds = bookingDoc.map((b) => b.PatientProfile.id);
+    const patientProfileIdsDistance = [...new Set(patientProfileIds)];
+
+    const dataPromise = patientProfileIdsDistance.map(async (d) => {
+      const bookingDoc = await db.Booking.findAll({
+        raw: true,
+        nest: true,
+        where: {
+          status: "CU2",
+        },
+        order: [[db.HealthExaminationSchedule, "date", "desc"]],
+        include: [
+          {
+            model: db.PatientProfile,
+            where: {
+              id: d,
+            },
+          },
+          {
+            model: db.HealthExaminationSchedule,
+            where: {},
+            include: [
+              { model: db.Code, as: "TimeCode" },
+              {
+                model: db.Working,
+                where: {
+                  staffId,
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      return {
+        bookingLast: bookingDoc?.[0],
+        count: bookingDoc.length,
+      };
+    });
+
+    const result = await Promise.all(dataPromise);
+    return {
+      patient: result,
+      keyWordPatient,
+    };
+  }
   // index use
-  async getIndex({ role, page, index }) {
+  async getIndex({ role, page, index, pagrams }) {
     let data = null;
     if (role == "admin") {
       switch (page) {
         case "home": {
           if (index == 1) {
             data = await this.getIndexAdminHome1();
+            break;
+          }
+
+          if (index == 2) {
+            data = await this.getIndexAdminHome2(pagrams);
+            break;
+          }
+
+          if (index == 3) {
+            data = await this.getIndexAdminHome3(pagrams);
+            break;
+          }
+        }
+        case "service": {
+          if (index == 1) {
+            data = await this.getIndexAdminService1();
+            break;
           }
         }
       }
     } else if (role == "doctor") {
+      switch (page) {
+        case "home": {
+          if (index == 1) {
+            data = await this.getIndexDoctorHome1(pagrams);
+            break;
+          }
+
+          if (index == 2) {
+            data = await this.getIndexDoctorHome2(pagrams);
+            break;
+          }
+
+          if (index == 3) {
+            data = await this.getIndexDoctorHome3(pagrams);
+            break;
+          }
+          if (index == 4) {
+            data = await this.getIndexDoctorHome4(pagrams);
+            break;
+          }
+        }
+      }
     }
 
     return {

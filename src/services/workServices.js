@@ -713,7 +713,7 @@ class WorkServices {
   // Health Examination Schedule
   async getHealthExamSchedule({
     offset = 0,
-    limit = 5,
+    limit = 10,
     staffId,
     date,
     workingId,
@@ -749,7 +749,7 @@ class WorkServices {
     staffId && (whereQuery.workingId = getWorkingId);
     staffId && (whereHealthExaminationSchedule.workingId = getWorkingId);
 
-    const currentDate = moment().format("YYYY-MM-DD");
+    const currentDate = moment().add(1).format("YYYY-MM-DD");
     // if (type === "current") {
     //   whereQuery.date = {
     //     [Op.gte]: moment(Sequelize.col("date")).format("L"),
@@ -762,7 +762,9 @@ class WorkServices {
         [Sequelize.fn("DISTINCT", Sequelize.col("date")), "date"],
         [
           Sequelize.literal(
-            `CASE WHEN date < '${moment().format("L")}' THEN 1 ELSE 0 END`
+            `CASE WHEN date < '${moment()
+              .add(1, "day")
+              .format("L")}' THEN 1 ELSE 0 END`
           ),
           "dateOrder",
         ],

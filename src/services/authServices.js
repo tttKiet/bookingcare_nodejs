@@ -30,7 +30,7 @@ class authServices {
     if (!userDoc && !staffDoc) {
       return {
         statusCode: 1,
-        msg: "Email not found.",
+        msg: "Email không được tìm thấy.",
       };
     }
 
@@ -43,7 +43,7 @@ class authServices {
     if (!isValidPass) {
       return {
         statusCode: 2,
-        msg: "Password invalid.",
+        msg: "Sai mật khẩu.",
       };
     }
 
@@ -64,7 +64,7 @@ class authServices {
     const expiresIn = Math.floor(new Date().getTime() / 1000);
     return {
       statusCode: 0,
-      msg: "Login successfully.",
+      msg: "Đăng nhập thành công.",
       token: token,
       user: dataSign,
       expiresIn,

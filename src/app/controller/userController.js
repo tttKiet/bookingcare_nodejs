@@ -419,7 +419,7 @@ class UserController {
     const user = req?.user;
     let userId = "";
 
-    if (user?.role?.keyType !== "admin") {
+    if (user?.role?.keyType !== "admin" && type != "all") {
       userId = user?.id;
     }
     try {
@@ -429,6 +429,7 @@ class UserController {
         userId,
         staffId,
         type,
+        starNumber,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
@@ -610,10 +611,10 @@ class UserController {
 
   // [GET] /api/v1/user/index
   async handleGetIndex(req, res) {
-    const { page, index } = req.query;
+    const { page, index, ...pagrams } = req.query;
 
     try {
-      const data = await userServices.getIndex({ page, index });
+      const data = await userServices.getIndex({ page, index, pagrams });
       if (data.statusCode === 0) {
         return res.status(200).json(data);
       }
