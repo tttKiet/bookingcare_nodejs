@@ -16,8 +16,8 @@ class AuthController {
 
       return res
         .cookie("token", data.token, {
-          sameSite: "strict",
-          secure: process.env.ENVIRONMENT !== "dev",
+          sameSite: "none",
+          secure: true,
           httpOnly: true,
           path: "/",
           expiresIn: data.expiresIn,
