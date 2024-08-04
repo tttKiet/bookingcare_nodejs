@@ -18,7 +18,7 @@ const host = process.env.POSTGRES_HOST || "localhost";
 //     acquire: 30000,
 //     idle: 10000,
 //   },
-// });
+// });/
 
 const sequelize = new Sequelize(databaseUrl);
 

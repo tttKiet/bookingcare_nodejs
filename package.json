@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "nodemon --exec babel-node ./bin/www",
-    "build": "babel ./src --out-dir dist --copy-files",
+    "build-babel": "babel ./src --out-dir dist --copy-files",
     "prod": "node ./dist/bin/www.js"
   },
   "dependencies": {
