@@ -19,6 +19,7 @@ const corsOptions = {
     "http://127.0.0.1:3000",
     "https://sandbox.vnpayment.vn",
     "https://bookingcare-nextjs-e2hsxu9lb-tttkiets-projects.vercel.app/",
+    "https://bookingcare-nextjs.vercel.app/",
     "https://bookingcare-nextjs.vercel.app",
   ],
   credentials: true,
