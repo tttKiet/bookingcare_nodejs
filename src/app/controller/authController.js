@@ -16,7 +16,7 @@ class AuthController {
 
       return res
         .cookie("token", data.token, {
-          sameSite: "none",
+          sameSite: "None",
           secure: true,
           httpOnly: true,
           path: "/",
