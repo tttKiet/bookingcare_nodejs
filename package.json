@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon --exec babel-node ./bin/www"
+    "start": "nodemon --exec babel-node ./bin/www",
+    "build": "babel ./src --out-dir dist --copy-files",
+    "prod": "node ./dist/bin/www.js"
   },
   "dependencies": {
     "@sequelize/postgres": "^7.0.0-alpha.41",

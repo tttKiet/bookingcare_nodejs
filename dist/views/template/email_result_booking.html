@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Appointment Confirmation</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    "
+  >
+    <div
+      style="
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        style="
+          color: #666;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+        "
+      >
+        Chào
+        <strong style="color: #333; margin-left: 4px">{{name}}</strong>
+        ,
+      </div>
+      <p style="color: #666">
+        Cảm ơn bạn đã đặt niềm tin, dưới đây là kết quả khám bệnh của bạn:
+      </p>
+      <div
+        style="
+          margin-top: 30px;
+          display: flex;
+          flex-wrap: wrap;
+          -ms-flex-wrap: wrap;
+          flex-direction: row;
+          gap: 8px;
+        "
+      >
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Ngày:</strong> {{date}}
+        </div>
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Thời gian:</strong> {{time}}
+        </div>
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Bác sĩ:</strong> {{doctor}}
+        </div>
+      </div>
+
+      <div
+        style="
+          display: flex;
+          flex-wrap: wrap;
+          -ms-flex-wrap: wrap;
+          flex-direction: row;
+          gap: 8px;
+        "
+      >
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Phòng khám:</strong> {{room}}
+        </div>
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Địa chỉ phòng khám:</strong> {{location}}
+        </div>
+      </div>
+
+      <div style="margin-top: 30px">
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Chuẩn đoán bệnh:</strong> {{diagnosis}}
+        </div>
+        <div style="color: #666; margin-bottom: 10px; min-width: 25%">
+          <strong>Ghi chú:</strong> {{note}}
+        </div>
+      </div>
+      <div style="margin-top: 30px">
+        <p style="color: #555">Xem chi tiết toa thuốc ở các file bên dưới.</p>
+      </div>
+    </div>
+  </body>
+</html>
