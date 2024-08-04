@@ -19,7 +19,6 @@ class AuthController {
           sameSite: "none",
           secure: true,
           httpOnly: true,
-          path: "/",
           expiresIn: data.expiresIn,
         })
         .status(200)
@@ -52,7 +51,10 @@ class AuthController {
   // [GET] /api/v1/auth/logout
   async handleLogout(req, res, next) {
     try {
-      res.cookie("token", "");
+      res.cookie("token", "", {
+        sameSite: "none",
+        secure: true,
+      });
       return res
         .status(200)
         .json({ statusCode: 0, msg: "Logout successfully" });

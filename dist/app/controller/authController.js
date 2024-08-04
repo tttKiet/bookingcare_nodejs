@@ -48,7 +48,6 @@ var AuthController = /*#__PURE__*/function () {
                 sameSite: "none",
                 secure: true,
                 httpOnly: true,
-                path: "/",
                 expiresIn: data.expiresIn
               }).status(200).json({
                 statusCode: data.statusCode,
@@ -129,7 +128,10 @@ var AuthController = /*#__PURE__*/function () {
           while (1) switch (_context3.prev = _context3.next) {
             case 0:
               _context3.prev = 0;
-              res.cookie("token", "");
+              res.cookie("token", "", {
+                sameSite: "none",
+                secure: true
+              });
               return _context3.abrupt("return", res.status(200).json({
                 statusCode: 0,
                 msg: "Logout successfully"
