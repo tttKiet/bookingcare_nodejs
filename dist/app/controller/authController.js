@@ -45,7 +45,7 @@ var AuthController = /*#__PURE__*/function () {
             case 6:
               data = _context.sent;
               return _context.abrupt("return", res.cookie("token", data.token, {
-                sameSite: "none",
+                sameSite: "None",
                 secure: true,
                 httpOnly: true,
                 path: "/",
