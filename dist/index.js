@@ -27,11 +27,11 @@ app.use(_express["default"].urlencoded({
 // Connect to database
 (0, _db["default"])();
 
-// Use Middaleware
-app.use(_middleWares.handleError);
-
 // Use CookieParser
 app.use((0, _cookieParser["default"])());
+
+// Use Middaleware
+app.use(_middleWares.handleError);
 
 // Static files
 app.use(_express["default"]["static"](_path["default"].join(__dirname, "public")));

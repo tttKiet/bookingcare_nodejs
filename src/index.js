@@ -33,11 +33,11 @@ app.use(express.urlencoded({ extended: false }));
 // Connect to database
 connectDb();
 
-// Use Middaleware
-app.use(handleError);
-
 // Use CookieParser
 app.use(cookieParser());
+
+// Use Middaleware
+app.use(handleError);
 
 // Static files
 app.use(express.static(path.join(__dirname, "public")));

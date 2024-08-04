@@ -16,9 +16,9 @@ class AuthController {
 
       return res
         .cookie("token", data.token, {
-          sameSite: "none",
-          secure: true,
           httpOnly: true,
+          sameSite: "none",
+          secure: false,
           expiresIn: data.expiresIn,
         })
         .status(200)
@@ -53,7 +53,7 @@ class AuthController {
     try {
       res.cookie("token", "", {
         sameSite: "none",
-        secure: true,
+        secure: false,
       });
       return res
         .status(200)

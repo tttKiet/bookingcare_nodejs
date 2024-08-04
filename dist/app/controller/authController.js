@@ -45,9 +45,9 @@ var AuthController = /*#__PURE__*/function () {
             case 6:
               data = _context.sent;
               return _context.abrupt("return", res.cookie("token", data.token, {
-                sameSite: "none",
-                secure: true,
                 httpOnly: true,
+                sameSite: "none",
+                secure: false,
                 expiresIn: data.expiresIn
               }).status(200).json({
                 statusCode: data.statusCode,
@@ -130,7 +130,7 @@ var AuthController = /*#__PURE__*/function () {
               _context3.prev = 0;
               res.cookie("token", "", {
                 sameSite: "none",
-                secure: true
+                secure: false
               });
               return _context3.abrupt("return", res.status(200).json({
                 statusCode: 0,
