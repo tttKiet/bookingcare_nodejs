@@ -277,6 +277,7 @@ class UserController {
       patientProfileName,
       status,
       bookingId,
+      HR4,
     } = req.query;
     if (!userId) {
       return res.status(401).json({
@@ -295,6 +296,7 @@ class UserController {
         patientProfileName,
         userId,
         bookingId,
+        HR4,
       });
       if (data.statusCode === 0) {
         return res.status(200).json(data);

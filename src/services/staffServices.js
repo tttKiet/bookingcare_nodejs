@@ -126,6 +126,7 @@ class StaffServices {
     checkUpCodeId,
     bookingId,
     staffIdLogin,
+    userId,
   }) {
     let healthFacilityId;
     if (staffIdLogin) {
@@ -173,6 +174,10 @@ class StaffServices {
     }
 
     const wherePatientProfile = {};
+
+    if (userId) {
+      wherePatientProfile.userId = userId;
+    }
     if (patientProfileName) {
       wherePatientProfile.fullName = {
         [Op.substring]: patientProfileName,

@@ -6,6 +6,7 @@
     "start": "nodemon --exec babel-node ./bin/www"
   },
   "dependencies": {
+    "@sequelize/postgres": "^7.0.0-alpha.41",
     "aws-sdk": "^2.1450.0",
     "bcrypt": "^5.1.1",
     "config": "^3.3.11",

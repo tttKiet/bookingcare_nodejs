@@ -155,6 +155,7 @@ class StaffController {
       healthExamScheduleId,
       bookingId,
       staffId,
+      userId,
     } = req.query;
 
     try {
@@ -162,6 +163,7 @@ class StaffController {
         offset,
         limit,
         staffId,
+        userId,
         date,
         timeCodeId,
         patientProfileName,

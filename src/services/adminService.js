@@ -677,6 +677,7 @@ class adminService {
       model: db.Booking,
       nest: true,
       raw: true,
+
       include: [
         db.PatientProfile,
         {
@@ -693,6 +694,7 @@ class adminService {
         },
       ],
       where: {
+        status: "CU2",
         [Op.and]: [
           Sequelize.where(
             Sequelize.fn(
@@ -714,6 +716,7 @@ class adminService {
       model: db.Booking,
       nest: true,
       raw: true,
+
       include: [
         db.PatientProfile,
         {
@@ -730,6 +733,8 @@ class adminService {
         },
       ],
       where: {
+        status: "CU2",
+
         [Op.and]: [
           Sequelize.where(
             Sequelize.fn(
@@ -751,6 +756,9 @@ class adminService {
       model: db.Booking,
       nest: true,
       raw: true,
+      where: {
+        status: "CU2",
+      },
       include: [
         db.PatientProfile,
         {
@@ -767,6 +775,8 @@ class adminService {
         },
       ],
     });
+
+    console.log("\n\n\n\npatientCountSum", patientCountSum);
 
     const patientIdDistancesSum = [
       ...new Set(patientCountSum.map((s) => s.patientProfileId)),

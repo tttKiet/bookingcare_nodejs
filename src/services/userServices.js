@@ -554,6 +554,7 @@ class UserServices {
     offset = 0,
     status,
     bookingId,
+    HR4,
   }) {
     const whereBooking = {};
     const whereHealthExaminationSchedule = {};
@@ -615,6 +616,19 @@ class UserServices {
     });
 
     const dataPromise = bookingDoc.rows.map(async (b) => {
+      const bookingId = b.id;
+      if (HR4 == 1) {
+        const health = await db.HealthRecord.findOne({
+          status: "HR4",
+          raw: true,
+          where: {
+            bookingId,
+          },
+        });
+
+        if (!health) return null;
+      }
+
       const workingId = b.HealthExaminationSchedule.Working.id;
       // Get working no check price
       const workRoom = await workServices.getWorkRoomFromWorking({ workingId });
@@ -625,7 +639,7 @@ class UserServices {
       };
     });
 
-    const result = await Promise.all(dataPromise);
+    const result = (await Promise.all(dataPromise)).filter((s) => s != null);
 
     return {
       statusCode: 0,
